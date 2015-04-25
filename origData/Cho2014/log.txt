@@ -1,0 +1,3 @@
+# conversion manually from excel files into bed files
+for i in *.bed; do cat $i | tr -s ' ' | tr ' ' '\t' > ../$i; done
+ python convCho.py  > cho.tab

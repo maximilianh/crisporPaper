@@ -1,0 +1,6 @@
+# remove some fields, reorder 
+# remove on-targets and the shorter, tru-guides (tru=?)
+less nbt.3117-S2.txt | gawk '(substr($10,1,20)!=substr($9,1,20))' | gawk 'BEGIN {OFS="\t"} {print $8,$1,$2,$3,$10,$5,$6}' | grep -v tru > nbt.3117-S2.filter.txt
+# make table with site -> offtarget count
+cat nbt.3117-S2.filter.txt | cut -f1 | sort | grep Cells -v | uniq -c | sort -nr | tr -s ' ' | sed 's/ //' | tr ' ' '\t' | gawk '{print $2,$1}' | sort  > otCounts.tab
+ python convTsai.py  > tsai.tab

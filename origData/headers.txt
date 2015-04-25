@@ -1,0 +1,1 @@
+name	seq	score	type

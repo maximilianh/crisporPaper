@@ -1,0 +1,1 @@
+cat SuppTable7.txt | grep EMX | less | awk -F $'\t' '{OFS="\t"; stype="off-target"; if ($4=="POSITIVE_CONTROL") stype="on-target"; print "Hsu_"$1,$2$3,$6,stype}' |sort -k3g > convert.tab
