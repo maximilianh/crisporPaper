@@ -19,7 +19,7 @@ for fname in glob.glob("*.bed"):
         if seq in targets:
             seqType = "on-target"
         score = float(score)
-        row = [fname, seq, score, seqType]
+        row = [fname, seq.upper(), score, seqType]
         sums[fname] += score
         rows.append(row)
 

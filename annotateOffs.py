@@ -72,8 +72,10 @@ def parseGuides():
         
 hitScoreM = [0,0,0.014,0,0,0.395,0.317,0,0.389,0.079,0.445,0.508,0.613,0.851,0.732,0.828,0.615,0.804,0.685,0.583]
 
-def calcHitScore(string1,string2):
-    " see 'Scores of single hits' on http://crispr.mit.edu/about "
+def calcHitScore(string1,string2, startPos=0):
+    """ see 'Scores of single hits' on http://crispr.mit.edu/about 
+    startPos can be used to feed sequences longer than 20bp into this function
+    """
     # The Patrick Hsu weighting scheme
     #print string1, string2
     assert(len(string1)==len(string2)==20)

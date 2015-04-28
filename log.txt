@@ -6,7 +6,6 @@ for i in *.bed; do cat $i | gawk '{OFS="\t"; $2-=40; $3+=37; print}' > extBed/$i
 rm -rf flankSeq/*
 for i in *.bed; do echo $i; twoBitToFa /data/gbdb/hg19/hg19.2bit -bed=extBed/$i flankSeq/`basename $i .bed`.fa; done
  #for i in cho_*; do mv $i `echo $i | sed -e s/cho/Cho/`; done
- cat origData/*/convert.tab | sort -k1,1 -k3,3gr | cat origData/headers.txt - > offtargets.tab
  cat origData/*/convert.tab | sort -k1,1 -k3,3gr | cat origData/headers.txt - > offtargets.tsv
  cut -f2,3 table2.tsv  > /tmp/temp.tab
  cut -f2,3 table2.tsv | grep -v gc > /tmp/temp.tab
@@ -20,3 +19,9 @@ for i in *.bed; do echo $i; twoBitToFa /data/gbdb/hg19/hg19.2bit -bed=extBed/$i 
  less offtargets.tsv | egrep -v '_site2|sgRNA4' | cut -f2 | grep -v seq | tr '[:lower:]' '[:upper:]' | grep -v .GG$ | wc -l
  less offtargets.tsv | egrep -v '_site2|sgRNA4' | cut -f2 | grep -v seq | tr '[:lower:]' '[:upper:]' | wc -l
  less offtargets.tsv | egrep -v '_site2|sgRNA4' > offtargetsFilt.tsv
+ less offtargets.tsv | egrep -v '_site2|sgRNA4|VEGF_A|_site1' > offtargetsFilt.tsv 
+ cut -f1 offtargetsFilt.tsv | wc -l
+ python tableOfftargets.py | awk '($3!~/GG$/)' 
+
+# get the predicted targets
+for i in fa/*.fa; do base=`basename $i .fa`; /var/www/crisporMax/crispor.cgi hg19 $i guides/$base.tsv -o crisporOfftargets/$base.tsv --minAltPamScore=0.0 -d --maxOcc=1000000; done

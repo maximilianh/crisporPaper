@@ -13,5 +13,5 @@ for fname in glob.glob("*.bed"):
         if seq in targets:
             seqType = "on-target"
         score = str(float(score)/100000)
-        row = [fname.replace("cho", "Cho"), seq, score, seqType]
+        row = [fname.replace("cho", "Cho"), seq.upper(), score, seqType]
         print "\t".join(row)
