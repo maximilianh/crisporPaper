@@ -3,6 +3,7 @@ from annotateOffs import *
 
 import numpy as np
 import matplotlib.pyplot as plt
+from os.path import basename, splitext
 
 #minFrac= 0.02
 #minFrac = 0.01
@@ -27,21 +28,44 @@ def parse(fname):
     return otScores
 
 def parseCrispor(dirName):
-    " parse crispor output files, return as dict guideName -> seq -> otScore "
+    " parse rispor output files, return as dict guideSeq -> ot seq -> otScore "
     predScores = defaultdict(dict)
+    targetSeqs = {}
     for fname in glob.glob(dirName+"/*.tsv"):
         for row in iterTsvRows(fname):
-            guideName = fname.split("/")[-1].split(".")[0]
+            guideName = splitext(basename(fname))[0]
             predScores[row.guideSeq][row.offtargetSeq] = float(row.offtargetScore)
-    return predScores
+            targetSeqs[guideName] = row.guideSeq
+    return predScores, targetSeqs
 
-guideValidOts = parse("annotFiltOfftargets.tsv")
-guidePredOts = parseCrispor("crisporOfftargets")
+def parseMit(dirName, targetSeqs):
+    " parse the MIT csv files, return a dict with guideSeq -> otSeq -> otScore "
+    fnames= glob.glob(dirName+"/*.csv")
+    data = defaultdict(dict)
+    for fname in fnames:
+        guideName = fname.split("/")[1].split(".")[0]
+        study = guideName.split("_")[0]
+        #if study in ignoreStudies:
+            #continue
+        if guideName not in targetSeqs:
+            print "MIT off-target data without bench data: %s" % guideName
+            continue
+        for line in open(fname):
+            if line.startswith("guide"):
+                continue
+            fs = line.split(", ")
+            otSeq = fs[4]
+            score = fs[6]
+            if fs[8]=="True":
+                # ontarget
+                continue
+            guideSeq = targetSeqs[guideName]
+            data[guideSeq][otSeq]=float(score)
+    return data
 
-headers = ["readFrac", "cutoff", "sens", "spec", "TP", "FP", "FN", "TN"]
-print "\t".join(headers)
 
-def getRocValues(guideValidOts, guidePredOts, minReadFrac):
+def getRocValues(toolName, guideValidOts, guidePredOts, minReadFrac):
+    " return a list of (sens, fdr) tuples for a ROC curve plotting "
     # keep only the validated off-targets with read fraction > minCutoff
     validOts = set()
     for guideSeq, validOtSeqs in guideValidOts.iteritems():
@@ -86,33 +110,55 @@ def getRocValues(guideValidOts, guidePredOts, minReadFrac):
         sens = float(len(tp)) / (len(tp)+len(fn))
 
         # specificity - proportion of that are predicted to be not off-targets
-        spec = float(len(tn)) / (len(tn)+len(fp))
+        if len(tn)+len(fp)!=0:
+            spec = float(len(tn)) / (len(tn)+len(fp))
+        else:
+            spec = 0.0
         fdr = 1.0 - spec
 
         sensList.append(sens)
         fdrList.append(fdr)
 
-        row = [minFrac, cutoff, sens*100, fdr, len(tp), len(fp), len(fn), len(tn)]
+        row = [toolName, minReadFrac, cutoff, sens*100, fdr, len(tp), len(fp), len(fn), len(tn)]
         row = [str(x) for x in row]
         print "\t".join(row)
         sys.stdout.flush()
 
     return sensList, fdrList, validOts
 
+def plotRoc(prefix, guideValidOts, guidePredOts, colors, styles, plots, labels):
+    i= 0
+    maxSens = 0
+    for minFrac in [0.0, 0.001, 0.01]:
+        sensList, fdrList, validSeqs = getRocValues(prefix, guideValidOts, guidePredOts, minFrac)
+        plotLabel = prefix+", cleavage > %0.1f%%, %d off-targets" % ((minFrac*100), len(validSeqs))
+        p, = plt.plot(fdrList, sensList, ls=styles[i], color=colors[i]) # NB: comma!
+        plots.append(p)
+        labels.append(plotLabel)
+        maxSens = max(maxSens, max(sensList))
+        i+=1
+    return plots, labels, maxSens
+
+guideValidOts = parse("annotFiltOfftargets.tsv")
+guidePredOts, targetSeqs = parseCrispor("crisporOfftargets")
+mitPredOts = parseMit("mitOfftargets", targetSeqs)
+
+headers = ["readFrac", "cutoff", "sens", "spec", "TP", "FP", "FN", "TN"]
+print "\t".join(headers)
+
 plots = []
 labels = []
-styles = [":", "--", "-"]
 
-i= 0
-maxSens = 0
-for minFrac in [0.0, 0.001, 0.01]:
-    sensList, fdrList, validSeqs = getRocValues(guideValidOts, guidePredOts, minFrac)
-    plotLabel = "Cleavage > %0.1f%% (%d off-targets)" % ((minFrac*100), len(validSeqs))
-    p, = plt.plot(fdrList, sensList, ls=styles[i]) # NB: comma!
-    plots.append(p)
-    labels.append(plotLabel)
-    maxSens = max(maxSens, max(sensList))
-    i+=1
+plots = []
+labels = []
+
+styles = ["-", "-", "-"]
+colors = ["black", "blue", "green"]
+plots, labels, maxSens1 = plotRoc("Crispor", guideValidOts, guidePredOts, colors, styles, plots, labels)
+
+colors = ["black", "blue", "green"]
+styles = [":", ":", ":"]
+plots, labels, maxSens2 = plotRoc("MIT", guideValidOts, mitPredOts, colors, styles, plots, labels)
 
 plt.legend(plots,
        labels,
@@ -123,11 +169,15 @@ plt.legend(plots,
 plt.xlabel("False positive rate")
 plt.ylabel("True positive rate")
 ax = plt.gca()
-ax.axhline(y=maxSens, ls=":", color="k")
-plt.text(0, maxSens, "max = %0.2f"%maxSens)
+ax.axhline(y=maxSens1, ls=":", color="k")
+plt.text(0, maxSens1, "max = %0.2f"%maxSens1)
 plt.ylim(0,1.0)
 plt.xlim(0,1.0)
 
 outfname = "roc.pdf"
+plt.savefig(outfname)
+print "wrote %s" % outfname
+
+outfname = "roc.png"
 plt.savefig(outfname)
 print "wrote %s" % outfname

@@ -1,63 +1,47 @@
-import glob
+from collections import defaultdict
+import sys
 
-# had wang data as pseudo-bed files copied from Fig1, convert them here to 
-# a simpler one-table format
+# use validated data from supp table 5, adding sequences from other suppl files
 
-def conv(guideName, mockFname, candFname, validFname):
-    # get map name -> seq
+#cellType = "Hap1"
+
+#.ofh = open("convert.tab", "w")
+ofh = sys.stdout
+
+def conv(guideName, cellType):
+    # mock file: get map name -> seq
     seqs = {}
-    for line in open(mockFname):
+    for line in open(guideName.lower()+"Mock.txt"):
         fs = line.rstrip("\n").strip().split()
         seq = fs[-1]
         name = fs[0]
         seqs[name] = seq
 
-    # get map name -> frequency
-    freqs = {}
-    for line in open(validFname):
+    # validated file: get map name -> frequency
+    sumFreqs = 0.0
+    rows = []
+    for line in open(guideName.lower()+"Valid"+cellType+".txt"):
         fs = line.split()
-        freqs[fs[0]] = fs[2]
-
-    # go over digenome candidates
-    for line in open(candFname):
-        fs = line.rstrip("\n").strip().split()
-        if line.lower().startswith("name"):
-            continue
+        freq = float(fs[3].replace("%",""))/100
         name = fs[0]
-        if name!="On-target":
-            name = name.replace("-", "")
-
-        pVal = fs[-1]
-        if pVal=="N.A.":
-            continue
-        pVal = float(pVal)
-        if pVal > 0.01:
-            continue
-        pVal = 1.0/pVal
-
-        totalReads = fs[4]
         seqType = "off-target"
         if "On-target" in name:
             seqType = "on-target"
-        if name=="name":
-            continue
-        #row = [guideName, seqs[name], str(pVal), freqs.get(name, "NA"), seqType]
-        if name in freqs:
-            freq = float(freqs[name].replace("%",""))/100
-            row = [guideName, seqs[name], str(freq), seqType]
-        print "\t".join(row)
-        
+        sumFreqs+= freq
+        #row = ["Kim"+cellType+"_"+guideName, seqs[name], freq, seqType]
+        row = ["Kim"+"_"+guideName, seqs[name], freq, seqType]
+        rows.append(row)
 
-#for fname in glob.glob("*.bed"):
-    #for line in open(fname):
-        ##fs = line.rstrip("\n").split()
-        #chrom, start, end, seq, score = fs[:5]
-        #fname = fname.split(".")[0]
-        #seqType = "off-target"
-        #if seq in targets:
-            #seqType = "on-target"
+    for row in rows:
+        #row[2] = str(row[2] / sumFreqs)
+
         #row = [fname, seq, score, seqType]
-        ##print "\t".join(row)
+        row = [str(x) for x in row]
+        ofh.write( "\t".join(row))
+        ofh.write("\n")
 
-conv("Kim_"+"VEGF_A", "vegfaMock.txt", "vegfaCand.txt", "vegfaValid.txt")
-conv("Kim_"+"HBB", "hbbMock.txt", "hbbCand.txt", "hbbValid.txt")
+#conv("VEGFA", "Hap1")
+#conv("HBB", "Hap1")
+conv("VEGFA", "K562")
+conv("HBB", "K562")
+#print ('wrote convert.tab')

@@ -1,0 +1,1 @@
+for i in `cat studies.txt`; do cd $i; python convert.py > convert.tab; cd ..; done

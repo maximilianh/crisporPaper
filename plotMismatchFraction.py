@@ -3,6 +3,7 @@ from annotateOffs import *
 import numpy as np
 import matplotlib.pyplot as plt
 
+minFrac = 0.001
 def countMms(string1, string2):
     " count mismatches between two strings "
     mmCount = 0
@@ -61,7 +62,7 @@ def plotBoxplots(fractions):
     for yGrid in range(1,6):
         ax.axhline(y=float(yGrid)+0.5, ls=":", linewidth=0.2, color="black")
     #plt.ylabel("Fraction of off-targets with indels")
-    plt.xlabel("Fraction of cell sample with indels, if > 1%")
+    plt.xlabel("Indel frequency, when > 0.1%")
 
     plt.legend(figs,
            studyNames,
@@ -72,8 +73,12 @@ def plotBoxplots(fractions):
 
     plt.tight_layout()
     plt.savefig(outfname)
-    plt.close()
     print "wrote %s" % outfname
+
+    outfname = outfname.replace("pdf", "png")
+    plt.savefig(outfname)
+    print "wrote %s" % outfname
+    plt.close()
 
 
 headers = ["name", "guideSeq", "otSeq", "guideGc", "readFraction", "mismatches", "otScore", "diffLogo"]
@@ -98,6 +103,7 @@ for row in iterTsvRows(inFname):
 rows = []
 fractions = defaultdict(list)
 
+datCount = 0
 for row in inRows:
     guideSeq = targetSeqs[row.name]
     otSeq = row.seq
@@ -112,8 +118,11 @@ for row in inRows:
 
     #if not row.name.startswith("Tsai"):
     #   continue
-    if float(row.score)>0.01:
+    if float(row.score)>minFrac:
         fractions[mmCount].append((row.name, float(row.score)))
+        datCount +=1
+
+print "total points", datCount
 
 
 rows.sort(key=operator.itemgetter(6))

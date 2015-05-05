@@ -1,5 +1,7 @@
 import random, string
 
+# plot read fraction versus Gc content
+
 from annotateOffs import *
 
 import matplotlib
@@ -34,14 +36,14 @@ def plot(maxMMs, guideGcs, otCounts):
 
         studyLabels[study].append(guideName )
 
-    outfname = "readFraction" + '.pdf'
+    outfname = "gcReadFraction" + '.pdf'
     pdf = pltBack.PdfPages(outfname)
     fig = plt.figure(figsize=(5,5),
                    dpi=300, facecolor='w')
     fig = plt.figure()
 
-    colors = ["green", "blue", "black", "yellow", "red", "grey"]
-    markers = ["o", "s", "+", ">", "<", "^"]
+    colors = ["green", "blue", "black", "yellow", "red", "grey", "orange"]
+    markers = ["o", "s", "+", ">", "<", "^", "."]
     studyNames = []
     figs = []
     i = 0
@@ -74,16 +76,22 @@ def plot(maxMMs, guideGcs, otCounts):
     plt.legend(figs,
            studyNames,
            scatterpoints=1,
-           loc='upper left',
-           ncol=3,
+           loc='lower left',
+           ncol=2,
            fontsize=10)
 
+    plt.ylim(0,1.08)
     plt.xlabel("GC content")
     if plotRel:
         plt.ylabel("relative efficacy (fraction of reads relative to all indel-causing reads)")
     else:
-        plt.ylabel("Fraction of on-target cleavage")
+        plt.ylabel("On-target indel frequency")
     fig.savefig(pdf, format = 'pdf')
+    print "Wrote %s" % outfname
+
+    outfname = outfname.replace(".pdf", ".png")
+    fig.savefig(outfname)
+
     pdf.close()
     print "Wrote %s" % outfname
 
