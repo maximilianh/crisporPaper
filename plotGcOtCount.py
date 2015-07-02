@@ -1,3 +1,5 @@
+# plot GC content and off-target count as a scatter plot
+
 import matplotlib
 matplotlib.use('Agg')
 matplotlib.rcParams['pdf.fonttype'] = 42

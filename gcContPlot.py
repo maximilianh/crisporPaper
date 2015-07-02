@@ -26,8 +26,8 @@ def plot(fname):
         studyX[study].append( gcCont )
         studyY[study].append( otCount )
     
-    colors = ["green", "blue", "black", "yellow", "red", "grey"]
-    markers = ["o", "s", "+", ">", "<", "^"]
+    colors = ["green", "blue", "black", "yellow", "red", "grey", "violet", "lightblue"]
+    markers = ["o", "s", "+", ">", "<", "^", "o", "+"]
     studyNames = []
     figs = []
     i = 0
@@ -52,6 +52,7 @@ def plot(fname):
     plt.xlabel("GC content")
     plt.ylabel("Number of off-targets")
     fig.savefig(pdf, format = 'pdf')
+    fig.savefig("gcCont.png")
     pdf.close()
     print "Wrote %s" % outfname
 
@@ -62,13 +63,14 @@ def main():
     offsByName = defaultdict(list)
     targetSeqs = dict()
     for row in iterTsvRows("offtargets.tsv"):
-        offsByName[row.name].append(row)
+        guideName = row.name.split("/")[0] # remove cell type
+        offsByName[guideName].append(row)
         if row.type=="on-target":
-            targetSeqs[row.name] = row.seq
+            targetSeqs[guideName] = row.seq
 
     rows = []
     for name, offs in offsByName.iteritems():
-        row = [name, str(gcCont(targetSeqs[name])), str(len(offs))]
+        row = [name, str(round(gcCont(targetSeqs[name]))), str(len(offs))]
         rows.append(row)
     rows.sort(key=operator.itemgetter(1))
 

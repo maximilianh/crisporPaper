@@ -1,6 +1,7 @@
 import random, string
 
-# plot read fraction versus Gc content
+# plot on-target read fraction versus Gc content
+# HAS A PARAMETER THAT CAN PLOT RELATIVE FREQUENCIES!!
 
 from annotateOffs import *
 
@@ -18,6 +19,7 @@ ignoreStudies = []
 plotRel = False
 
 def plot(maxMMs, guideGcs, otCounts):
+    " maxMMs is a dict guide name -> maximum mismatch  "
     xVals = []
     yVals = []
     zVals = []
@@ -42,12 +44,15 @@ def plot(maxMMs, guideGcs, otCounts):
                    dpi=300, facecolor='w')
     fig = plt.figure()
 
-    colors = ["green", "blue", "black", "yellow", "red", "grey", "orange"]
-    markers = ["o", "s", "+", ">", "<", "^", "."]
+    colors = ["red", "blue", "black", "black", "green", "grey", "orange", "violet"]
+    markers = ["o", "s", "<", "+", "+", "^", ".", ">"]
     studyNames = []
     figs = []
     i = 0
-    for study, xVals in studyX.iteritems():
+    studies = sorted(studyX.keys())
+    print studies
+    for study in studies:
+        xVals = studyX[study]
         yVals = studyY[study]
         zVals = studyZ[study]
         #plt.scatter(xVals, yVals, \
@@ -69,8 +74,8 @@ def plot(maxMMs, guideGcs, otCounts):
                # arrowprops = dict(arrowstyle = '->', connectionstyle = 'arc3,rad=0')
                # bbox = dict(boxstyle = 'round,pad=0.5', fc = 'yellow', alpha = 0.5))
                plt.annotate(
-                  label, fontsize=6, rotation=30, ha="right", rotation_mode="anchor",
-                  xy = (x, y), xytext = (0,0), alpha=.5,
+                  label, fontsize=8, rotation=30, ha="right", rotation_mode="anchor",
+                  xy = (x, y), xytext = (0,0), alpha=0.9,
                   textcoords = 'offset points', va = 'bottom')
 
     plt.legend(figs,
@@ -85,7 +90,7 @@ def plot(maxMMs, guideGcs, otCounts):
     if plotRel:
         plt.ylabel("relative efficacy (fraction of reads relative to all indel-causing reads)")
     else:
-        plt.ylabel("On-target indel frequency")
+        plt.ylabel("On-target modification frequency")
     fig.savefig(pdf, format = 'pdf')
     print "Wrote %s" % outfname
 
@@ -95,22 +100,8 @@ def plot(maxMMs, guideGcs, otCounts):
     pdf.close()
     print "Wrote %s" % outfname
 
-def countMms(string1, string2):
-    " count mismatches between two strings "
-    mmCount = 0
-    string1 = string1.upper()
-    string2 = string2.upper()
-    diffLogo = []
-    for pos in range(0, len(string1)):
-        if string1[pos]!=string2[pos]:
-            mmCount+=1
-            diffLogo.append("*")
-        else:
-            diffLogo.append(".")
-
-    return mmCount, "".join(diffLogo)
-
 def annotateOts():
+    " write annotations of the offtargets to a tab-setp file and also return as dict "
     targetSeqs = {}
     inFname = "offtargets.tsv"
     inRows = []
@@ -125,48 +116,54 @@ def annotateOts():
             otCounts[row.name] += 1
         inRows.append(row)
 
+    # first sum up the frequencies for each guide
     sums = defaultdict(float)
     for row in inRows:
         if row.score=="NA": # Frock cannot quantify the target
             continue
         sums[row.name] += float(row.score)
 
-    headers = ["name", "guideSeq", "otSeq", "guideGc", "otGc", "assayScore", "mmCount", "diffLogo"]
+    headers = ["name", "guideSeq", "otSeq", "guideGc", "otGc", "assayScore", "mmCount", "diffLogo", "mmCountOneGap", "oneGapSeq", "diffLogoOneGap"]
     rows = [headers]
+
     maxMMs = defaultdict(int)
     guideGcConts = {}
     i = 0
     for row in inRows:
         #if row.type=="on-target":
             #continue
-        if row.type=="off-target":
-            continue
-        #if "Frock" in row.name:
-            #continue
         guideSeq = targetSeqs[row.name][:-3].upper()
         otSeq = row.seq[:-3].upper()
-        mmCount, diffLogo = countMms(guideSeq, otSeq)
-        #if mmCount<=4:
-            #continue
+        mmCount, diffLogo = countMmsAndLogo(guideSeq, otSeq)
+
         otGcCont = gcCont(otSeq)
         guideGc = gcCont(guideSeq)
-        otRow = [row.name, guideSeq, otSeq, str(guideGc), str(otGcCont), row.score, str(mmCount), diffLogo]
+
+        gappedMm, guideGapSeqs, otGapSeqs, gapLogos = findGappedSeqs(guideSeq, otSeq)
+        if gappedMm > mmCount:
+            gappedMm = 0
+            guideGapSeqs = []
+            gapLogos = []
+
+        otRow = [row.name, guideSeq, otSeq, str(guideGc), str(otGcCont), row.score, str(mmCount), diffLogo, str(gappedMm), ",".join(guideGapSeqs), ",".join(gapLogos)]
         rows.append(otRow)
         #dataName = row.name+str(i)
         dataName = row.name
         #maxMMs[row.name+str(i)] = max(maxMMs[row.name], mmCount)
         #maxMMs[dataName] = mmCount + random.random()
         #maxMMs[dataName] = mmCount
-        assert(dataName not in maxMMs)
         if row.score=="NA": # Frock cannot quantify the target
             continue
-        freq = float(row.score) 
+        freq = float(row.score)
         if plotRel:
             if "Tsai" not in dataName:
                 freq = freq/sums[dataName]
                 #print "correction: ", dataName, freq, sums[dataName]
         #else:
             #freq = 1.0 - freq
+        if row.type=="off-target":
+            continue
+        assert(dataName not in maxMMs)
         maxMMs[dataName] = freq
 
         #guideGcConts[row.name] = guideGc
@@ -176,7 +173,7 @@ def annotateOts():
 
     ofh = open("annotOfftargets.tsv", "w")
     for row in rows:
-        ofh.write("\t".join(otRow))
+        ofh.write("\t".join(row))
         ofh.write("\n")
     ofh.close()
     print "wrote %s" % ofh.name

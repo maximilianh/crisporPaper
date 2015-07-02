@@ -1,5 +1,5 @@
 # annotate guideseq offtargets with all possible scores we have
-import glob, copy, sys, math, operator, random, re, collections
+import glob, copy, sys, math, operator, random, re, collections, tempfile
 from collections import defaultdict, Counter
 from os.path import basename, join
 
@@ -72,6 +72,14 @@ def parseGuides():
         
 hitScoreM = [0,0,0.014,0,0,0.395,0.317,0,0.389,0.079,0.445,0.508,0.613,0.851,0.732,0.828,0.615,0.804,0.685,0.583]
 
+def calcMitGuideScore(hitSum):
+    """ Sguide defined on http://crispr.mit.edu/about 
+    Input is the sum of all off-target hit scores. Returns the specificity of the guide.
+    """
+    score = 100 / (100+hitSum)
+    score = int(round(score*100))
+    return score
+
 def calcHitScore(string1,string2, startPos=0):
     """ see 'Scores of single hits' on http://crispr.mit.edu/about 
     startPos can be used to feed sequences longer than 20bp into this function
@@ -107,6 +115,40 @@ def calcHitScore(string1,string2, startPos=0):
     score = score1 * score2 * score3 * 100
     return score
 
+def writeSvmRows(seqs):
+    """ return a file object with the seqs encoded in the Wang/Sabatini/Lander format 
+    >>> #writeSvmRows(["ATAGACCTACCTTGTTGAAG"])
+    """
+    tmpFile = open("/tmp/test.txt", "w")
+    #tmpFile = tempfile.NamedTemporaryFile(prefix="svmR")
+    for row in iterSvmRows(seqs):
+        tmpFile.write("\t".join([str(x) for x in row]))
+        tmpFile.write("\n")
+    return tmpFile
+
+def iterSvmRows(seqs):
+    """ calculate the SVM score from the Wang/Sabatini/Lander paper 
+    >>> list(iterSvmRows(["ATAGACCTACCTTGTTGAAG"]))
+    [['SEQ', 'BP1A', 'BP1C', 'BP1T', 'BP1G', 'BP2A', 'BP2C', 'BP2T', 'BP2G', 'BP3A', 'BP3C', 'BP3T', 'BP3G', 'BP4A', 'BP4C', 'BP4T', 'BP4G', 'BP5A', 'BP5C', 'BP5T', 'BP5G', 'BP6A', 'BP6C', 'BP6T', 'BP6G', 'BP7A', 'BP7C', 'BP7T', 'BP7G', 'BP8A', 'BP8C', 'BP8T', 'BP8G', 'BP9A', 'BP9C', 'BP9T', 'BP9G', 'BP10A', 'BP10C', 'BP10T', 'BP10G', 'BP11A', 'BP11C', 'BP11T', 'BP11G', 'BP12A', 'BP12C', 'BP12T', 'BP12G', 'BP13A', 'BP13C', 'BP13T', 'BP13G', 'BP14A', 'BP14C', 'BP14T', 'BP14G', 'BP15A', 'BP15C', 'BP15T', 'BP15G', 'BP16A', 'BP16C', 'BP16T', 'BP16G', 'BP17A', 'BP17C', 'BP17T', 'BP17G', 'BP18A', 'BP18C', 'BP18T', 'BP18G', 'BP19A', 'BP19C', 'BP19T', 'BP19G', 'BP20A', 'BP20C', 'BP20T', 'BP20G'], ['ATAGACCTACCTTGTTGAAG', 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]]
+    """
+    offsets = {"A":0,"C":1,"T":2,"G":3}
+    # construct and write header
+    headers = ["SEQ"]
+    fields = []
+    for i in range(1, 21):
+        for n in ["A", "C", "T", "G"]:
+            fields.append("BP"+str(i)+n)
+    headers.extend(fields)
+    yield headers
+
+    for seq in seqs:
+        row = []
+        row.extend([0]*80)
+        for pos, nucl in enumerate(seq):
+            nuclOffset = offsets[nucl]
+            row[pos*4+nuclOffset] = 1
+        row.insert(0, seq)
+        yield row
 
 def parseBeds(dirName):
     " parse all beds in dir and return as baseFname -> set of (seq,score, count,guideName)"
@@ -283,7 +325,6 @@ def parseEncode(dirName):
             seqSegs[seq].setdefault(cell, []).append(seg)
     return seqSegs
 
-    
 def sumReads(gSeq):
     " return dict with name -> total number of reads obtained "
     ret = {}
@@ -295,7 +336,8 @@ def sumReads(gSeq):
         ret[name] = total
     return ret
     
-def main():
+def outputOldTable():
+    " not used anymore, was a try to use ML to predict OT count "
     headers = ["offtargetSeq________", "readCount", "copyCount", "guideName", "readShare", "cutType", "hitScore", "guideSeq", "gcGuide", "flank100Gc", "ggMotifCount", "isMainPam", "isAltPam", "mhScore", "effScore", "repCount", "chromatinType"]
     print "\t".join(headers)
 
@@ -369,8 +411,8 @@ def main():
             row = [str(x) for x in row]
             print "\t".join(row)
 
-#main()
 def compSeq(str1, str2):
+    return data
     " return a string that marks mismatches between str1 and str2 with * "
     s = []
     for x, y in zip(str1, str2):
@@ -380,3 +422,83 @@ def compSeq(str1, str2):
             s.append("*")
     return "".join(s)
 
+def removeOneNucl(seq):
+    " construct 20 sequences, each one with one nucleotide deleted "
+    for i in range(0, 20):
+        yield seq[:i]+seq[i+1:]
+
+def countMms(string1, string2):
+    " count mismatches between two strings "
+    mmCount = 0
+    string1 = string1.upper()
+    string2 = string2.upper()
+    diffLogo = []
+    for pos in range(0, len(string1)):
+        if string1[pos]!=string2[pos]:
+            mmCount+=1
+            diffLogo.append("*")
+        else:
+            diffLogo.append(".")
+
+    return mmCount, "".join(diffLogo)
+
+def findGappedSeqs(guideSeq, offtargetSeq):
+    """ return list of gapped versions of otSeq with lower mismatch count than mmCount
+    >>> findGappedSeqs("AATAGC", "AATTAG")
+    (0, ['AATAG'], ['.....'])
+    >>> findGappedSeqs("CGTACA", "AAGTCA")
+    (3, ['AGTCA'], ['***..'])
+    >>> findGappedSeqs("TGGATGGAGGAATGAGGAGT", "GAGGATGGGGAATGAGGAGT")
+    (4, ['GGGATGGGGAATGAGGAGT'], ['..***.*............'])
+    >>> findGappedSeqs("TGGATGGAGGAATGAGGAGT", "GAGGATGGGGAATGAGGAGT")
+    """
+    # AATAGC
+    # AATTAG
+    # becomes:
+    # AATAG
+    # AATAG 
+    # and:
+    # CGTACA 
+    # AAGTCA -> 4 mismatches
+    #     **
+    # best gapped version is 
+    # CGTAC 
+    # AGTCA -> 1 mismatch
+    # remove either first or last bp from guide
+    offtarget1 = offtargetSeq[1:]
+    offtarget2 = offtargetSeq[:-1]
+    # remove one bp in turn from ot
+    minMm = 99999
+    guideSeqs = defaultdict(list)
+    logos = defaultdict(list)
+    gapPos = defaultdict(list)
+    otSeqs = defaultdict(list)
+    for i, gappedGuideSeq in enumerate(removeOneNucl(guideSeq)):
+        for offtargetSeq in [offtarget1, offtarget2]:
+            mm, diffLogo = countMms(offtargetSeq, gappedGuideSeq)
+            if mm < minMm:
+                minMm = mm
+                gapPos[mm].append(i)
+                logos[mm].append(diffLogo)
+                guideSeqs[mm].append(guideSeq[:i]+"("+guideSeq[i]+")"+guideSeq[i+1:])
+                otSeqs[mm].append(offtargetSeq)
+    return minMm, guideSeqs[minMm], otSeqs[minMm], logos[minMm]
+
+def countMmsAndLogo(string1, string2):
+    " count mismatches between two strings also return mismatch ASCII logo"
+    mmCount = 0
+    string1 = string1.upper()
+    string2 = string2.upper()
+    diffLogo = []
+    for pos in range(0, len(string1)):
+        if string1[pos]!=string2[pos]:
+            mmCount+=1
+            diffLogo.append("*")
+        else:
+            diffLogo.append(".")
+
+    return mmCount, "".join(diffLogo)
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()
