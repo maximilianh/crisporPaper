@@ -85,7 +85,7 @@ def parseMit(dirName, targetSeqs):
     return data
 
 def compareOffs(benchSeqs, names, offList):
-    ofh = open("toolComparison.tsv", "w")
+    ofh = open("out/toolComparison.tsv", "w")
     offData = {}
     headers = ["guide", "validOffs"]
     for name in names:

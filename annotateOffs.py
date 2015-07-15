@@ -1,7 +1,9 @@
 # annotate guideseq offtargets with all possible scores we have
-import glob, copy, sys, math, operator, random, re, collections, tempfile
+import glob, copy, sys, math, operator, random, re, collections, tempfile, subprocess, logging, os
 from collections import defaultdict, Counter
-from os.path import basename, join
+from os.path import basename, join, splitext, isfile
+
+logging.basicConfig(loglevel=logging.INFO)
 
 def iterTsvRows(inFile, encoding=None, fieldSep="\t", isGzip=False, skipLines=None, \
         makeHeadersUnique=False, commentPrefix=None, headers=None):
@@ -80,12 +82,21 @@ def calcMitGuideScore(hitSum):
     score = int(round(score*100))
     return score
 
+def calcMitGuideScore_offs(guideSeq, otSeqs):
+    " calc mit spec score given a guide and a list of off-target sequences "
+    scoreSum = sum([calcHitScore(guideSeq, ots) for ots in otSeqs])
+    return calcMitGuideScore(scoreSum)
+
 def calcHitScore(string1,string2, startPos=0):
     """ see 'Scores of single hits' on http://crispr.mit.edu/about 
     startPos can be used to feed sequences longer than 20bp into this function
     """
     # The Patrick Hsu weighting scheme
     #print string1, string2
+    if len(string1)==len(string2)==23:
+        string1 = string1[:20]
+        string2 = string2[:20]
+
     assert(len(string1)==len(string2)==20)
 
     dists = [] # distances between mismatches, for part 2
@@ -115,16 +126,65 @@ def calcHitScore(string1,string2, startPos=0):
     score = score1 * score2 * score3 * 100
     return score
 
-def writeSvmRows(seqs):
-    """ return a file object with the seqs encoded in the Wang/Sabatini/Lander format 
-    >>> #writeSvmRows(["ATAGACCTACCTTGTTGAAG"])
+def parseSvmOut(fname):
+    " parse R SVM output file, return as dict seq -> score "
+    data = {}
+    for line in open (fname):
+        fs = line.strip().split()
+        seq, score = fs
+        seq = seq.strip('"')
+        score = score.strip('"')
+        data[seq] = float(score)
+    return data
+
+def writeDict(d, fname):
+    " write dict as a tab file "
+    ofh = open(fname, "w")
+    for k, v in d.iteritems():
+        ofh.write("%s\t%s\n" % (k, v))
+    ofh.close()
+
+def readDict(fname, isFloat=False):
+    " read dict from a tab sep file "
+    logging.info("Reading %s" %fname)
+    data = {}
+    for line in open(fname):
+        k, v = line.rstrip("\n").split("\t")
+        if isFloat:
+            v = float(v)
+        data[k] = v
+    return data
+
+def calcSvmEffScores(seqs):
     """
-    tmpFile = open("/tmp/test.txt", "w")
+    returns the SVM-calculated efficiency scores from the Wang/Sabatini/Lander paper
+    """
+    writeSvmRows(seqs, "/tmp/temp.txt")
+    cmd = "cd wangSabatiniSvm/; R --slave --no-save -f scorer.R --args /tmp/temp.txt /tmp/temp.out"
+    assert(os.system(cmd)==0)
+    return parseSvmOut("/tmp/temp.out")
+
+svmScores = None
+
+def lookupSvmScore(seq):
+    " retrieve svm scores from svmScores.tab "
+    assert(len(seq)==20)
+    seq = seq.upper()
+    global svmScores
+    if svmScores==None:
+        svmScores = readDict("svmScores.tab", isFloat=True)
+    return svmScores[seq]
+
+def writeSvmRows(seqs, fname):
+    """ return a file object with the seqs encoded in the Wang/Sabatini/Lander format 
+    >>> writeSvmRows(["ATAGACCTACCTTGTTGAAG"])
+    """
+    tmpFile = open(fname, "w")
     #tmpFile = tempfile.NamedTemporaryFile(prefix="svmR")
     for row in iterSvmRows(seqs):
         tmpFile.write("\t".join([str(x) for x in row]))
         tmpFile.write("\n")
-    return tmpFile
+    tmpFile.close()
 
 def iterSvmRows(seqs):
     """ calculate the SVM score from the Wang/Sabatini/Lander paper 
@@ -147,6 +207,7 @@ def iterSvmRows(seqs):
         for pos, nucl in enumerate(seq):
             nuclOffset = offsets[nucl]
             row[pos*4+nuclOffset] = 1
+        assert(len(seq)==20)
         row.insert(0, seq)
         yield row
 
@@ -190,6 +251,24 @@ def parseFasta(fileObj):
         seqs[seqId]  = "".join(parts)
     return seqs
 
+def parseFastaAsList(fileObj):
+    " parse a fasta file, where each seq is on a single line, return list (id, seq) "
+    seqs = []
+    parts = []
+    seqId = None
+    for line in fileObj:
+        line = line.rstrip("\n")
+        if line.startswith(">"):
+            if seqId!=None:
+                seqs.append( (seqId, "".join(parts)) )
+            seqId = line.lstrip(">")
+            parts = []
+        else:
+            parts.append(line)
+    if len(parts)!=0:
+        seqs.append( (seqId, "".join(parts)) )
+    return seqs
+
 def parseFlanks(faDir):
     seqToFlank = {}
     for fname in glob.glob(join(faDir, "*.fa")):
@@ -228,6 +307,42 @@ params = [
 intercept =  0.59763615
 gcHigh    = -0.1665878
 gcLow     = -0.2026259
+
+binDir = "../crispor/bin/Darwin"
+baseDir = "../crispor"
+
+def calcSscScores(seqs):
+    """ calc the SSC scores from the paper Xu Xiao Chen Li Meyer Brown Lui Gen Res 2015 
+    >>> calcSscScores(["AGCAGGATAGTCCTTCCGAGTGGAGGGAGG"])
+    {'AGCAGGATAGTCCTTCCGAGTGGAGGGAGG': 0.182006}
+    """
+    assert(len(seqs)!=0) # need at least one sequence
+    strList = []
+    for s in seqs:
+        assert(len(s)==30)
+        strList.append("%s 0 0 + dummy" % s)
+    sscIn = "\n".join(strList)
+
+    # ../../Darwin/SSC -i /dev/stdin  -o /dev/stdout -l 30 -m matrix/human_mouse_CRISPR_KO_30bp.matrix 
+    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19
+    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  0 0 -   t
+    # AGCAGGATAGTCCTTCCGAGTGGAGGGAGG  187 216 -   MYC_exon3_hg19  0.182006
+    sscPath = join(binDir, "SSC")
+    matPath = join(baseDir, "bin", "src", "SSC0.1", "matrix", "human_mouse_CRISPR_KO_30bp.matrix")
+    cmd = [sscPath, "-i", "/dev/stdin", "-o", "/dev/stdout", "-l", "30", "-m", matPath]
+    stdout, stderr = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(sscIn)
+    scores = {}
+    i = 0
+    for lineIdx, line in enumerate(stdout.split("\n")):
+        fs = line.split()
+        if "Processing failed" in line:
+            raise Exception("SSC returned error")
+        seq, score = fs[0], float(fs[-1])
+        scores[seq] = score
+        lineIdx += 1
+        if lineIdx==len(seqs):
+            break
+    return scores
 
 def calcDoenchScore(seq):
     assert(len(seq)==30)
@@ -412,7 +527,6 @@ def outputOldTable():
             print "\t".join(row)
 
 def compSeq(str1, str2):
-    return data
     " return a string that marks mismatches between str1 and str2 with * "
     s = []
     for x, y in zip(str1, str2):
@@ -428,7 +542,10 @@ def removeOneNucl(seq):
         yield seq[:i]+seq[i+1:]
 
 def countMms(string1, string2):
-    " count mismatches between two strings "
+    """ count mismatches between two strings, return mmCount, diffLogo 
+    >>> countMms("CCTGCCTCCGCTCTACTCACTGG", "TCTGCCTCCTTTATACTCACAGG")
+    (5, '*........**.*.......*..')
+    """
     mmCount = 0
     string1 = string1.upper()
     string2 = string2.upper()
@@ -445,12 +562,13 @@ def countMms(string1, string2):
 def findGappedSeqs(guideSeq, offtargetSeq):
     """ return list of gapped versions of otSeq with lower mismatch count than mmCount
     >>> findGappedSeqs("AATAGC", "AATTAG")
-    (0, ['AATAG'], ['.....'])
+    (1, ['AATAG(C)'], ['ATTAG'], ['.*...'])
     >>> findGappedSeqs("CGTACA", "AAGTCA")
-    (3, ['AGTCA'], ['***..'])
+    (1, ['CGT(A)CA'], ['AGTCA'], ['*....'])
     >>> findGappedSeqs("TGGATGGAGGAATGAGGAGT", "GAGGATGGGGAATGAGGAGT")
-    (4, ['GGGATGGGGAATGAGGAGT'], ['..***.*............'])
+    (1, ['TGGATGG(A)GGAATGAGGAGT'], ['AGGATGGGGAATGAGGAGT'], ['*..................'])
     >>> findGappedSeqs("TGGATGGAGGAATGAGGAGT", "GAGGATGGGGAATGAGGAGT")
+    (1, ['TGGATGG(A)GGAATGAGGAGT'], ['AGGATGGGGAATGAGGAGT'], ['*..................'])
     """
     # AATAGC
     # AATTAG
@@ -498,6 +616,121 @@ def countMmsAndLogo(string1, string2):
             diffLogo.append(".")
 
     return mmCount, "".join(diffLogo)
+
+def parseOfftargets(fname, maxMismatches, onlyAlt, validPams):
+    """ parse the annotated validated off-target table and return as dict
+    guideSeq -> otSeq -> modifFreq and another dict guideName -> guideSeq
+    """
+    otScores = defaultdict(dict)
+    guideSeqs = dict()
+    print "parsing %s" % fname
+    skipCount = 0
+    for row in iterTsvRows(fname):
+        #print fname, int(row.mismatches), maxMismatches
+        if int(row.mismatches)>maxMismatches:
+            #print "skip", row
+            skipCount += 1
+            continue
+        if not row.otSeq[-2:] in validPams:
+            print "not using off-target %s/%s, PAM is not NGG/NGA/NAG" % (row.name, row.otSeq)
+            continue
+
+        guideSeqs[row.name] = row.guideSeq
+        if onlyAlt and not row.otSeq[-2:] in ["AG", "GA"]:
+            continue
+        otScores[row.guideSeq][row.otSeq] = float(row.readFraction)
+    print "Skipped %d rows with more than %d mismatches" % (skipCount, maxMismatches)
+    return otScores, guideSeqs
+
+def parseOfftargetsWithNames(fname, maxMismatches, onlyAlt, validPams):
+    """ parse the annotated validated off-target table and return as dict
+    (guideSeq, guideName) -> otSeq -> modifFreq and another dict guideName -> guideSeq
+    """
+    otScores = defaultdict(dict)
+    guideSeqs = dict()
+    print "parsing %s" % fname
+    skipCount = 0
+    for row in iterTsvRows(fname):
+        #print fname, int(row.mismatches), maxMismatches
+        if int(row.mismatches)>maxMismatches:
+            #print "skip", row
+            skipCount += 1
+            continue
+        if validPams!=None and not row.otSeq[-2:] in validPams:
+            print "not using off-target %s/%s, PAM is not NGG/NGA/NAG" % (row.name, row.otSeq)
+            continue
+
+        if onlyAlt and not row.otSeq[-2:] in ["AG", "GA"]:
+            continue
+        otScores[(row.name, row.guideSeq)][row.otSeq] = float(row.readFraction)
+    print "Skipped %d rows with more than %d mismatches" % (skipCount, maxMismatches)
+    return otScores
+
+def parseMit(dirName, guideSeqs):
+    " parse the MIT csv files, return a dict with guideSeq -> otSeq -> otScore "
+    #fnames= glob.glob(dirName+"/*.csv")
+    #print targetSeqs
+    data = defaultdict(dict)
+    for guideName in guideSeqs:
+    #for fname in fnames:
+        guideNameNoCell = guideName.replace("/K562", "").replace("/Hap1","")
+        fname = join(dirName, guideNameNoCell+".csv")
+        study = guideName.split("_")[0]
+        #if study in ignoreStudies:
+            #continue
+        #if guideName not in targetSeqs:
+            #print "MIT off-target data without bench data: %s" % guideName
+            #continue
+        print "parsing %s" % fname
+        if not isfile(fname):
+            logging.error("MISSING: %s" % fname)
+            continue
+        for line in open(fname):
+            if line.startswith("guide"):
+                continue
+            fs = line.split(", ")
+            otSeq = fs[4]
+            score = fs[6]
+            if fs[7]=="True":
+                # ontarget
+                continue
+            guideSeq = guideSeqs[guideName]
+            data[guideSeq][otSeq]=float(score)
+    return data
+
+def parseCrispor(dirName, guideNames, maxMismatches):
+    """ parse rispor output files, return as dict guideSeq -> ot seq -> otScore 
+    Also return a dict with guideName -> guideSeq
+    """
+    predScores = defaultdict(dict)
+    #targetSeqs = {}
+    #for fname in glob.glob(dirName+"/*.tsv"):
+    #print "XX", guideNames
+    for guideName in guideNames:
+        # remove cell lines for KIM et al
+        guideName = guideName.replace("/K562", "").replace("/Hap1","")
+        # fix a few typos
+        #guideName = guideName.replace("WAS-CR", "WAS-CR-")
+        #guideName = guideName.replace("Kim_VEGFA", "Kim_VEGF_A")
+        fname = join(dirName, guideName+".tsv")
+        print "parsing %s" % fname
+        for row in iterTsvRows(fname):
+            if int(row.mismatchCount)>maxMismatches:
+                continue
+            guideName = splitext(basename(fname))[0]
+            predScores[row.guideSeq][row.offtargetSeq] = float(row.offtargetScore)
+            #targetSeqs[guideName] = row.guideSeq
+    return predScores
+
+def revComp(seq):
+    table = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n", 
+            "Y":"R", "R" : "Y", "M" : "K", "K" : "M", "W":"W", "S":"S",
+            "H":"D", "B":"V", "V":"B", "D":"H", "y":"r", "r":"y","m":"k",
+            "k":"m","w":"w","s":"s","h":"d","b":"v","d":"h","v":"b","y":"r","r":"y" }
+    newseq = []
+    for nucl in reversed(seq):
+       newseq += table[nucl]
+    return "".join(newseq)
 
 if __name__=="__main__":
     import doctest

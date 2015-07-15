@@ -89,7 +89,7 @@ def writeRows(rows, outFname):
     print "wrote %s" % outFname
 
 def main():
-    inFname = "offtargets.tsv"
+    inFname = "offtargetsFilt.tsv"
     guideSeqs, guideMms = parseSeqs(inFname)
 
     rows = makeDataRows(guideSeqs, guideMms)
@@ -97,21 +97,45 @@ def main():
     outFname = 'out/specScoreComp.tsv'
     writeRows(rows, outFname)
 
-    xVals = []
-    yVals = []
-    for row in rows:
-        if row[-1]==row[-2]==0:
-            continue
-        xVals.append(row[2]) # 4MM spec score
-        yVals.append(row[4]) # 6MM spec score
+    annotateXys = {} # dict with (x,y) -> name to annotate with labels
+    figs = []
+    for mmMax, column, color, marker in [(3, 1, "red", "o"), (4, 2, "black", "+"), (5, 3, "green", "^")]:
+        xVals = []
+        yVals = []
+        for row in rows:
+            # skip guides that don't have any data with 5 or 6 mismatches
+            if row[0]=='Tsai_VEGFA_site2':
+                annotateXys[(row[column], row[4])]=row[0]
+            if row[-1]==row[-2]==0:
+                continue
+            xVals.append(row[column]) # first spec score
+            yVals.append(row[4]) # 6MM spec score
 
-    studyFig = plt.scatter(xVals, yVals, \
-        alpha=.5, \
-        s=30)
+        fig = plt.scatter(xVals, yVals, \
+            alpha=.5, \
+            color=color, \
+            marker=marker, \
+            s=30)
+        figs.append(fig)
 
-    plt.xlabel("Spec. Score using <=4MM off-targets")
-    plt.ylabel("Spec. Score using <=6MM off-targets")
-    outfname = "specScoreMMComp"
+    plt.legend(figs,
+           ["mismatches <= 3", "mismatches <= 4", "mismatches <= 5"],
+           scatterpoints=1,
+           loc='upper left',
+           ncol=1,
+           fontsize=10)
+
+    for xy, guideName in annotateXys.iteritems():
+       x, y = xy
+       if float(x)>65 or y>25:
+           plt.annotate(
+              guideName, fontsize=9, rotation=30, ha="right", rotation_mode="anchor",
+              xy = (x, y), xytext = (0,0), alpha=.5,
+              textcoords = 'offset points', va = 'bottom')
+
+    plt.xlabel("Spec. Score using off-targets with 3, 4 or 5 mismatches")
+    plt.ylabel("Spec. Score using all off-targets (<= 6 mismatches)")
+    outfname = "out/specScoreMMComp"
     plt.savefig(outfname+".pdf", format = 'pdf')
     plt.savefig(outfname+".png")
     print "wrote %s.pdf / .png" % outfname

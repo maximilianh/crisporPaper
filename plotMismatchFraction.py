@@ -46,13 +46,17 @@ def readSiteCounts(crisporDir, guideNames):
 
 def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
     """ create plot with read fractions for each mismatch count and total sites in genome from mmAllCount
+    fractions:  mismatchCount -> list of (guideName, freq)
     """
     outfname = baseOutName+".pdf"
     # get the total OT count
     totalCount = 0
     maxMM = 7
+    guideNames = set()
     for i in range(1, maxMM):
         totalCount += len(fractions[i])
+        for guideName, frac in fractions.iteritems():
+            guideNames.add(guideName)
     print "check: totalCount of all validated off-targets= ", totalCount
 
     labels = []
@@ -63,9 +67,10 @@ def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
         otScores = fractions[mmCount]
         count = len(otScores)
         countPerc = (100.0*float(count)/totalCount)
-        potCount = mmAllCount[mmCount]
-        label = "%s mismatches\n%d genomic matches\n%d actual offtargets (%0.1f %%)" % \
-            (mmCount, potCount, count, countPerc)
+        #avgHitCount = mmAllCount[mmCount] / len(guideNames)
+        hitCount = mmAllCount[mmCount]
+        label = "%s mismatches:    \n%d genome hits\n%d actual offtargets (%0.1f %%)" % \
+            (mmCount, hitCount, count, countPerc)
         #labels.append(str(mmCount)+" mismatches: \n"+str(count)+" offtargets (%0.1f %%)" % countPerc)
         labels.append(label)
 
@@ -194,9 +199,13 @@ def main():
 
     siteCountsByMismatch = readSiteCounts("crisporOfftargets", guideNames)
     fractions = indexOfftargets(inRows, 0.0, targetSeqs)
-    plotFractions(fractions, siteCountsByMismatch, 0.0, "mismatchFraction-all")
+    plotFractions(fractions, siteCountsByMismatch, 0.0, "out/mismatchFraction-all")
 
     fractions = indexOfftargets(inRows, 0.01, targetSeqs)
-    plotFractions(fractions, siteCountsByMismatch, 0.01, "mismatchFraction-min1Perc")
+    plotFractions(fractions, siteCountsByMismatch, 0.01, "out/mismatchFraction-min1Perc")
+
+    fractions = indexOfftargets(inRows, 0.001, targetSeqs)
+    plotFractions(fractions, siteCountsByMismatch, 0.001, "out/mismatchFraction-min01Perc")
+
 
 main()
