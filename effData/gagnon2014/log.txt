@@ -1,0 +1,1 @@
+cat gagnon2014.suppTable3.txt | grep -v ^# | awk '{OFS="\t"; print $1,$2,$5;}' | cat headers.tab - > ../gagnon2014.tab

@@ -1,0 +1,3 @@
+# had to fix three sequences because of typos in the suppl
+grep -v ^# Varshney2015_Supplemental_Table1.txt | grep -v g | awk '($1!="") {OFS="\t"; print $1,$2$6, $5}' | cat headers.tab - | sed -e s/GGCGTCAGCAACATTTTCGGTGG/GGCGTCAGCAACATTTTCGGAGG/g | sed -e s/GGGCACTAATGAGGCGGTGCAGG/GGGCACTAATGAGGCGGTGCTGG/g | sed -e 's/GGCGTCCCTACTTGTGCTACAGG/GGCGTCCCTACTTGTGCTACTGG/' > ../varshney2015.tab
+#grep -v ^# Varshney2015_Supplemental_Table1.txt | grep -v g | awk '($1!="") {OFS="\t"; print $1,$2$6, $4}' | cat headers.tab - | sed -e s/GGCGTCAGCAACATTTTCGGTGG/GGCGTCAGCAACATTTTCGGAGG/g | sed -e s/GGGCACTAATGAGGCGGTGCAGG/GGGCACTAATGAGGCGGTGCTGG/g | sed -e 's/GGCGTCCCTACTTGTGCTACAGG/GGCGTCCCTACTTGTGCTACTGG/' > modFreq.tab

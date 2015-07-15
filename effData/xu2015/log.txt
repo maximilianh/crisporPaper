@@ -1,0 +1,4 @@
+python toFa.py > temp.fa
+gfClient blat4a.soe.ucsc.edu 17779 /gbdb/hg19 temp.fa temp.psl -minScore=20 -nohead -minIdentity=100 -maxIntron=0 -dots=1
+pslToBed temp.psl temp.bed
+python extendSeq.py > ../xu2015.tab
