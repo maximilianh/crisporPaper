@@ -1,7 +1,10 @@
 # annotate guideseq offtargets with all possible scores we have
-import glob, copy, sys, math, operator, random, re, collections, tempfile, subprocess, logging, os
+import glob, copy, sys, math, operator, random, re, collections, tempfile, subprocess, logging, os, types
 from collections import defaultdict, Counter
-from os.path import basename, join, splitext, isfile
+from os.path import basename, join, splitext, isfile, dirname
+
+# for the chari code
+import time, gzip, platform
 
 logging.basicConfig(loglevel=logging.INFO)
 
@@ -141,7 +144,10 @@ def writeDict(d, fname):
     " write dict as a tab file "
     ofh = open(fname, "w")
     for k, v in d.iteritems():
-        ofh.write("%s\t%s\n" % (k, v))
+        if type(v)==types.TupleType:
+            ofh.write("%s\t%s\n" % (k, "\t".join([str(x) for x in v])))
+        else:
+            ofh.write("%s\t%s\n" % (k, v))
     ofh.close()
 
 def readDict(fname, isFloat=False):
@@ -149,9 +155,16 @@ def readDict(fname, isFloat=False):
     logging.info("Reading %s" %fname)
     data = {}
     for line in open(fname):
-        k, v = line.rstrip("\n").split("\t")
-        if isFloat:
-            v = float(v)
+        fs = line.rstrip("\n").split("\t")
+        if len(fs)==2:
+            k, v = fs
+            if isFloat:
+                v = float(v)
+        else:
+            k = fs[0]
+            v = tuple(fs[1:])
+            if isFloat:
+                v = tuple([float(x) for x in v])
         data[k] = v
     return data
 
@@ -176,8 +189,8 @@ def lookupSvmScore(seq):
     return svmScores[seq]
 
 def writeSvmRows(seqs, fname):
-    """ return a file object with the seqs encoded in the Wang/Sabatini/Lander format 
-    >>> writeSvmRows(["ATAGACCTACCTTGTTGAAG"])
+    """ write the seqs in wang/sabatini SVM format to a file
+    #>>> writeSvmRows(["ATAGACCTACCTTGTTGAAG"])
     """
     tmpFile = open(fname, "w")
     #tmpFile = tempfile.NamedTemporaryFile(prefix="svmR")
@@ -642,7 +655,7 @@ def parseOfftargets(fname, maxMismatches, onlyAlt, validPams):
     print "Skipped %d rows with more than %d mismatches" % (skipCount, maxMismatches)
     return otScores, guideSeqs
 
-def parseOfftargetsWithNames(fname, maxMismatches, onlyAlt, validPams):
+def parseOfftargetsWithNames(fname, maxMismatches, onlyAlt, validPams, useOtNames=False):
     """ parse the annotated validated off-target table and return as dict
     (guideSeq, guideName) -> otSeq -> modifFreq and another dict guideName -> guideSeq
     """
@@ -662,7 +675,10 @@ def parseOfftargetsWithNames(fname, maxMismatches, onlyAlt, validPams):
 
         if onlyAlt and not row.otSeq[-2:] in ["AG", "GA"]:
             continue
-        otScores[(row.name, row.guideSeq)][row.otSeq] = float(row.readFraction)
+        name = row.name
+        if useOtNames:
+            name = row.otName
+        otScores[(name, row.guideSeq)][row.otSeq] = float(row.readFraction)
     print "Skipped %d rows with more than %d mismatches" % (skipCount, maxMismatches)
     return otScores
 
@@ -731,6 +747,199 @@ def revComp(seq):
     for nucl in reversed(seq):
        newseq += table[nucl]
     return "".join(newseq)
+
+def useRanks(vals):
+    """ replace values in list with their rank 
+    >>> useRanks([0.5, 0.1, 1.5])
+    [1, 0, 2]
+    """
+    newList = []
+    sortedList = list(sorted(vals))
+    for x in vals:
+        newList.append(sortedList.index(x))
+    return newList
+
+hsuMat = None # dict with (fromNucl, toNucl) -> list of 19 scores
+
+def calcHsuSuppScore(guideSeq, seq, baseDir="."):
+    """ calculate the score described on page 17 of the Hsu 2013 supplement 
+    >>> calcHsuSuppScore("AGTCCGAGCAGAAGAAGAA","AGTCCCAGCAGAGGAAGCA")
+    """
+    assert(len(seq)==19)
+    assert(len(guideSeq)==19)
+    global hsuMat
+    if hsuMat is None:
+        hsuMat = dict()
+        matFname = baseDir+"/hsu2013/fig2cData.txt"
+        for line in open(matFname):
+            if line.startswith("nucl") or line.startswith("avg"):
+                continue
+            fs = line.rstrip("\n").split()
+            nuclComb = fs[0]
+            fromNucl, toNucl = nuclComb.split(":")
+            fromNucl = fromNucl.replace("U", "T")
+            hsuMat[ (fromNucl, toNucl)] = [float(x) for x in fs[1:]]
+        hsuMat[("G", "C")] = hsuMat[ ('A', "A")]
+
+    score = 0
+    for i in range(0, 19):
+        fromNucl, toNucl = guideSeq[i], seq[i]
+        #return hsuMat[(fromNucl, toNucl)]
+        diff = hsuMat[(fromNucl, toNucl)][i]
+
+def seqToVec(guideSeq, otSeq):
+    """ encore the mismatches/matches between two 20bp sequences into a 3*20 vector 
+    the three parts per basepair are:
+    1 - is a G->T or A-C mismatch?
+    2 - is a T-T, G-G, A-A match or C->T, T-G, C->A, G->A, A->G mismatch?
+    3 - is a T->C or C->C match?
+    >>> seqToVec("AAGTCCGAGCAGAAGAAGAA","AAGTCCCAGCAGAGGAAGCA")
+    """
+    indexPos = {
+        "GT" : 0,
+        "AC" : 0,
+        "TT" : 1,
+        "AT" : 1,
+        "TA" : 1,
+        "CG" : 1,
+        "GG" : 1,
+        "GC" : 1,
+        "CT" : 1,
+        "TG" : 1,
+        "CA" : 1,
+        "GA" : 1,
+        "AA" : 1,
+        "AG" : 1,
+        "TC" : 2,
+        "CC" : 2
+    }
+    #vec = [ 0.0 ] * 60
+    vec = [ 0.0 ] * 20
+    for i in range(0, 20):
+        subIdx = indexPos[ guideSeq[i]+otSeq[i] ]
+        #vec[i*3+subIdx] = 1.0
+        if guideSeq[i]!=otSeq[i]:
+            vec[i] = 1.0
+    return vec
+
+def calcChariScores(seqs, baseDir="."):
+    " return dict with chari 2015 scores, returns seq -> (rawScore, relRank), seqs is a list of 23mers "
+    # this is mostly copied from scoreMySites.py in the Chari2015 package
+    # handles
+    #infile = args[0]
+    #organism = args[1]
+    #species = args[2]
+    #header = args[3]
+    organism = "Hg"
+    species = "SP"
+    chariDir = baseDir+"/sgRNA.Scorer.1.0/"
+    header = "/tmp/chariScores"
+
+    # know which files to use
+    if species=='SP' and organism=='Hg':
+            model = chariDir+'293T.HiSeq.SP.Nuclease.100.SVM.Model.txt'
+            dist = chariDir+'Hg19.RefFlat.Genes.75bp.NoUTRs.SPSites.SVMOutput.txt'
+            pam = 'NGG'
+    elif species=='SP' and organism=='Mm':
+            model = chariDir+'293T.HiSeq.SP.Nuclease.100.SVM.Model.txt'
+            dist = chariDir+'Mm10.RefFlat.Genes.75bp.NoUTRs.SPSites.SVMOutput.txt'
+            pam = 'NGG'
+    elif species=='ST1' and organism=='Hg':
+            model = chariDir+'293T.HiSeq.ST1.Nuclease.100.V2.SVM.Model.txt'
+            dist = chariDir+'Hg19.RefFlat.Genes.75bp.NoUTRs.ST1Sites.SVMOutput.txt'
+            pam = 'NNAGAAW'
+
+    elif species=='ST1' and organism=='Mm':
+            model = chariDir+'293T.HiSeq.ST1.Nuclease.100.V2.SVM.Model.txt'
+            dist = chariDir+'Mm10.RefFlat.Genes.75bp.NoUTRs.ST1Sites.SVMOutput.txt'
+            pam = 'NNAGAAW'	
+    else:
+            raise Exception, "Invalid selection! Choose Hg/Mm and SP/ST1"
+
+
+    # file names
+    gRNAFile      = header + '.putativeGRNASequences.fasta'
+    svmInputFile  = header + '.SVMInput.txt'
+    svmOutputFile = header + '.SVMOutput.txt'
+    finalOutput   = header + '.FinalOutput.txt'
+
+    ## first generate the sites
+    ##print 'Time: ' + str(time.ctime())
+    ##print 'Generating putative gRNA sites...'
+    ##runID = 'python identifyPutativegRNASites.py ' + infile + ' ' + pam + ' ' + gRNAFile
+    ##p = subprocess.Popen(runID,shell=True)
+    ##p.communicate()
+    # added by max
+    ofh = open(gRNAFile, "w")
+    for s in seqs:
+        ofh.write(">%s\n%s\n" % (s, s))
+    ofh.close()
+
+    # next generate the SVM input file
+    print 'Time: ' + str(time.ctime())
+    print 'Generating SVM input file from gRNA sequences...'
+    runSVMGen = 'python %sgenerateSVMFile.FASTA.py ' % chariDir + gRNAFile + ' ' + svmInputFile
+    p = subprocess.Popen(runSVMGen,shell=True)
+    p.communicate()
+
+    # run the SVM
+    print 'Time: ' + str(time.ctime())
+    print 'Running classification using SVM-Light'
+
+    # SVM Classify
+    currPlatform = platform.system()
+    binPath = dirname(join(__file__))+"/bin/%s/svm_classify" % currPlatform
+
+    runSVMClassify = binPath+' -v 0 ' + svmInputFile + ' ' + model + ' ' + svmOutputFile
+
+    p = subprocess.Popen(runSVMClassify,shell=True)
+    p.communicate()
+
+    # write the final outputHeader
+    print 'Time: ' + str(time.ctime())
+    print 'Converting scores to ranks based on global ' + species + ' score distribution'
+    runMakeTable = 'python %smakeFinalTable.py ' % chariDir + gRNAFile + ' ' + svmOutputFile + ' ' + dist + ' ' + finalOutput
+    p = subprocess.Popen(runMakeTable,shell=True)
+    p.communicate()
+
+    # added by max
+    scores = dict()
+    for line in open(finalOutput):
+        if line.startswith("SeqID"):
+            continue
+        fs = line.rstrip("\n").split("\t")
+        scores[fs[1]] = (float(fs[-2]), float(fs[-1]))
+    return scores
+
+chariScores = None
+
+def lookupchariScore(seq):
+    " retrieve one chari score from chariScores.tab, return tuple (rawScore, relPercRank) "
+    assert(len(seq)==23)
+    seq = seq.upper()
+    global chariScores
+    if chariScores==None:
+        chariScores = readDict("chariScores.tab", isFloat=True)
+    return chariScores[seq]
+
+def calcEffScores(seqs):
+    " given list of 34mers, return dict with seq -> scoreName -> score "
+    sscSeqs = [s[-30:] for s in seqs]
+    sscScores = calcSscScores(sscSeqs)
+
+    scores = defaultdict(dict)
+    for seq in seqs:
+        #print seq, len(seq)
+        if (len(seq)!=34):
+            logging.error( "Seq is not 34 bp long %s, len = %d" %  (seq, len(seq)))
+            assert(False)
+        scores[seq]["doench"] = calcDoenchScore(seq[:30])
+        scores[seq]["ssc"] = sscScores[seq[-30:]]
+        scores[seq]["svm"] = 1.0 - lookupSvmScore(seq[4:24])
+        chariRaw, chariRank = lookupchariScore(seq[4:27])
+        scores[seq]["chariRaw"] = chariRaw
+        scores[seq]["chariRank"] = chariRank
+    return scores
 
 if __name__=="__main__":
     import doctest

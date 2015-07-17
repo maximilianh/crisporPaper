@@ -1,6 +1,6 @@
 import os, logging, operator
 from os.path import isfile, splitext, join
-from annotateOffs import iterTsvRows, parseFastaAsList, calcDoenchScore, calcSscScores
+from annotateOffs import *
 from collections import defaultdict
 
 from scipy.stats import linregress, binom
@@ -24,6 +24,9 @@ def compPairs(fname, minScoreDiff):
         scores["doench"] = float(row.doench)
         scores["ssc"] = float(row.ssc)
         scores["svm"] = float(row.svm)
+        chariRaw, chariRank = lookupchariScore(row.extSeq[4:27])
+        scores["chariRaw"] = chariRaw
+        scores["chariRank"] = chariRank
         byGene[gene].append( (row.guide, float(row.modFreq), scores) )
 
     # keep only genes with two guides
@@ -38,7 +41,7 @@ def compPairs(fname, minScoreDiff):
             continue
 
     # for each gene, test if the order of the modFreq scores is the same as the order of the scores
-    scoreNames = ["doench", "ssc", "svm"]
+    scoreNames = ["doench", "ssc", "svm", "chariRaw"]
     okCounts = defaultdict(int)
     for gene, guidePair in twoGuides.iteritems():
         guide1, guide2 = guidePair
@@ -78,9 +81,9 @@ def compPairs(fname, minScoreDiff):
 
 def main():
     # parse the input file
+    compPairs("out/xu2015-compDoenchSsc.tsv", 20)
     compPairs("out/varshney2015-compDoenchSsc.tsv", 20)
     compPairs("out/xu2015Train-compDoenchSsc.tsv", 0.9)
-
     #compPairs("out/doench2014-S7-9Genes-compDoenchSsc.tsv", 1.0)
     compPairs("out/doench2014-S10-414Genes-compDoenchSsc.tsv", 0.5)
 

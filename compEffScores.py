@@ -1,7 +1,7 @@
 import os, logging
 logging.basicConfig(loglevel=logging.INFO)
 from os.path import isfile, splitext, join
-from annotateOffs import iterTsvRows, parseFastaAsList, calcDoenchScore, calcSscScores, lookupSvmScore
+from annotateOffs import *
 from collections import defaultdict
 
 logging.basicConfig(loglevel=logging.INFO)
@@ -14,9 +14,11 @@ matplotlib.rcParams['pdf.fonttype'] = 42
 import matplotlib.pyplot as plt
 import numpy as np
 
+# sqlUcsc hgcentral -e 'select * from blatServers where db="mm9"'
 blatServers = {
     "hg19": ("blat4a", "17779"),
-    "danRer10" : ("blat4c", "17863")
+    "danRer10" : ("blat4c", "17863"),
+    "mm9" : ("blat4c", "17779")
 }
 
 def extend23Mers(seqs, db):
@@ -98,6 +100,7 @@ def extendTabAddContext(fname, db):
 
     seqs = dict()
     for row in iterTsvRows(fname):
+        print "XX row", row
         seqs[row.guide] = row.seq
     seqPosDict = extend23Mers(seqs, db)
 
@@ -114,36 +117,19 @@ def extendTabAddContext(fname, db):
     print "Wrote result to %s" % ofh.name
     return newFname
 
-def calcEffScores(seqs):
-    " given list of 34mers, return dict with seq -> scoreName -> score "
-    sscSeqs = [s[-30:] for s in seqs]
-    sscScores = calcSscScores(sscSeqs)
-
-    scores = defaultdict(dict)
-    for seq in seqs:
-        #print seq, len(seq)
-        if (len(seq)!=34):
-            logging.error( "Seq is not 34 bp long %s, len = %d" %  (seq, len(seq)))
-            assert(False)
-        scores[seq]["doench"] = calcDoenchScore(seq[:30])
-        scores[seq]["ssc"] = sscScores[seq[-30:]]
-        scores[seq]["svm"] = 1.0 - lookupSvmScore(seq[4:24])
-    return scores
-
 def addDoenchAndScs(fname):
     " given tab file with extSeq column, return scs and doench scores "
     seqs = []
     for row in iterTsvRows(fname):
         seqs.append(row.extSeq)
-
     return calcEffScores(seqs)
 
-def plotScores(scores, scoreType, extFname, annotate, xLabel, doLegend=False, isXu=False, annotPos=None, diam=30):
+def plotScores(ax, scores, scoreType, extFname, annotate, xLabel, doLegend=False, isXu=False, annotPos=None, diam=30):
     " create scatter plot "
     data = defaultdict(list)
     names = []
-    allX = []
-    allY = []
+    regrX = []
+    regrY = []
     print "REMOVING points where mod frequency is 0"
     for row in iterTsvRows(extFname):
         y = float(row.modFreq)
@@ -151,8 +137,9 @@ def plotScores(scores, scoreType, extFname, annotate, xLabel, doLegend=False, is
             continue
         x = scores[row.extSeq][scoreType]
         names.append( (x, y, row.guide) )
-        allX.append(x)
-        allY.append(y)
+        if not isXu or not row.guide.startswith("AAVS"):
+            regrX.append(x)
+            regrY.append(y)
 
         if isXu:
             if row.guide.startswith("AR"):
@@ -174,7 +161,7 @@ def plotScores(scores, scoreType, extFname, annotate, xLabel, doLegend=False, is
     figs = []
     labels = []
     for title, tuples in data.iteritems():
-        fig = plt.scatter(*zip(*tuples), \
+        fig = ax.scatter(*zip(*tuples), \
             alpha=.5, \
             marker=markers[title], \
             s=diam)
@@ -182,39 +169,37 @@ def plotScores(scores, scoreType, extFname, annotate, xLabel, doLegend=False, is
         labels.append(title)
 
     if doLegend:
-        plt.legend(figs,
+        ax.legend(figs,
                labels,
                scatterpoints=1,
                loc='upper left',
                ncol=2,
                fontsize=8)
 
-    if not isXu:
-        #fit = np.polyfit(allX, allY, 1)
-        #m, b = fit
-        #fit_fn = np.poly1d(fit) 
-        ##plt.plot(x, y, 'yo', x, m*x+b, '--k') 
-        #plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
-        #print "XX", m,b
-        slope, intercept, r_value, p_value, std_err = linregress(allX,allY)
-        print 'r^2 value', r_value**2
-        print 'p_value', p_value
-        print 'standard deviation', std_err
-        line = slope*np.asarray(allX)+intercept
-        plt.plot(allX,line, linestyle='--', color="orange")
-        plt.annotate("r^2=%f\npVa=%f" % (r_value**2, p_value), xy=annotPos, fontsize=8)
-
+    #fit = np.polyfit(regrX, regrY, 1)
+    #m, b = fit
+    #fit_fn = np.poly1d(fit) 
+    ##plt.plot(x, y, 'yo', x, m*x+b, '--k') 
+    #plt.plot(x,y, 'yo', x, fit_fn(x), '--k')
+    #print "XX", m,b
+    slope, intercept, r_value, p_value, std_err = linregress(regrX,regrY)
+    print 'r^2 value', r_value**2
+    print 'p_value', p_value
+    print 'standard deviation', std_err
+    line = slope*np.asarray(regrX)+intercept
+    ax.plot(regrX,line, linestyle='--', color="orange")
+    ax.annotate("r^2=%0.3f\npVa=%0.4f" % (r_value**2, p_value), xy=(0.75,0.05), fontsize=8, xycoords='axes fraction')
     #figs.append(studyFig)
     #plt.ylim(0,1.08)
     if annotate:
         for x, y, label in names:
-           plt.annotate(
+           ax.annotate(
               label, fontsize=7, rotation=30, ha="right", rotation_mode="anchor",
               xy = (x, y), xytext = (0,0), alpha=0.9,
               textcoords = 'offset points', va = 'bottom')
 
     #plt.xlabel(scoreType+" score")
-    plt.xlabel(xLabel)
+    ax.set_xlabel(xLabel)
 
 
 def extendTabAddScores(extFname, scores, scoreNames, outFname):
@@ -239,42 +224,51 @@ def extendTabAddScores(extFname, scores, scoreNames, outFname):
     ofh.close()
     print "wrote data to %s" % ofh.name
 
-def plotDataset(datasetName, db, isXu=False, annotate=True, diam=30):
+def plotDataset(datasetName, ax, db, yLabel="Modification frequency", isXu=False, annotate=False, diam=30):
     inFname = join("effData/"+datasetName+".tab")
     extFname = extendTabAddContext(inFname, db)
     scores = addDoenchAndScs(extFname)
 
-    extendTabAddScores(extFname, scores, ["ssc", "doench", "svm"], "out/%s-compDoenchSsc.tsv" % datasetName)
+    extendTabAddScores(extFname, scores, ["ssc", "doench", "svm", "chariRaw"], "out/%s-compDoenchSsc.tsv" % datasetName)
 
-    fig = plt.figure(figsize=(12,4),
-                   dpi=300, facecolor='w')
+    #plt.subplot(figRow,4,1)
+    #ax[0].set_ylabel("Modification frequency")
+    ax[0].set_ylabel(yLabel)
+    ax[0].set_title(datasetName)
+    plotScores(ax[0], scores, "svm", extFname, annotate, "SVM score from Wang et al. 2014", doLegend=isXu, isXu=isXu, annotPos=(0.2, 80), diam=diam)
 
-    plotFname = "out/%s-compDoenchSsc.pdf" % datasetName
-    #plotFname = "out/compDoenchSsc-doench.pdf"
-    plt.subplot(131)
-    plotScores(scores, "svm", extFname, annotate, "SVM score from Wang et al. 2014", doLegend=isXu, isXu=isXu, annotPos=(0.2, 80), diam=diam)
-    plt.ylabel("Modification frequency")
+    #plt.subplot(figRow, 4, 2)
+    plotScores(ax[1], scores, "doench", extFname, annotate, "Score from Doench et al. 2014", isXu=isXu, annotPos=(-0.1, 95), diam=diam)
 
-    plt.subplot(132)
-    plotScores(scores, "doench", extFname, annotate, "Score from Doench et al. 2014", isXu=isXu, annotPos=(-0.1, 95), diam=diam)
+    #plt.subplot(figRow,4, 3)
+    plotScores(ax[2], scores, "ssc", extFname, annotate, "SSC Score from Xu et al. 2015", isXu=isXu, annotPos=(-0.1, 90), diam=diam)
 
-    plt.subplot(133)
-    plotScores(scores, "ssc", extFname, annotate, "SSC Score from Xu et al. 2015", isXu=isXu, annotPos=(-0.1, 90), diam=diam)
+    #plt.subplot(figRow,4,4)
+    plotScores(ax[3], scores, "chariRaw", extFname, annotate, "SVM Score from Chari et al. 2015", isXu=isXu, annotPos=(-0.1, 90), diam=diam)
 
-    plt.tight_layout()
-    plt.savefig(plotFname, format = 'pdf')
-    plt.savefig(plotFname.replace(".pdf", ".png"))
-    print "wrote plot to %s, added .png" % plotFname
-    plt.close()
+
 
 def main():
     #"XuData/modFreq.tab" 
     #extendTabAddContext("temp.tab")
-    #plotDataset("xu2015", "hg19", annotate=False, isXu=True)
-    #plotDataset("varshney2015", "danRer10", annotate=False)
-    #plotDataset("gagnon2014", "danRer10", annotate=False)
-    #plotDataset("xu2015Train", "danRer10", annotate=False, diam=1)
-    #plotDataset("doench2014-S10-414Genes", "hg19", annotate=False, diam=1)
-    plotDataset("doench2014-S7-9Genes", "hg19", annotate=False, diam=1)
+    plotFname = "out/compEffScores.pdf" 
+
+    fig, axArr = plt.subplots(5, 4, sharey="row")
+    fig.set_size_inches(18,20)
+
+    #plotDataset("doench2014-Hs", axArr[4], "hg19")
+    plotDataset("doench2014-Mm", axArr[4], "mm9")
+    #plotDataset("xu2015", axArr[0], "hg19", isXu=True)
+    #plotDataset("varshney2015", axArr[1], "danRer10")
+    #plotDataset("gagnon2014", axArr[2], "danRer10")
+    #plotDataset("xu2015Train", axArr[3], "danRer10", diam=1)
+    #plotDataset("doench2014-S10-414Genes", axArr[4], "hg19", diam=1)
+    #plotDataset("doench2014-S7-9Genes", 5, "hg19", annotate=False, diam=1)
+
+    fig.tight_layout()
+    fig.savefig(plotFname, format = 'pdf')
+    fig.savefig(plotFname.replace(".pdf", ".png"))
+    print "wrote plot to %s, added .png" % plotFname
+    plt.close()
 
 main()
