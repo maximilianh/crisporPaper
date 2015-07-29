@@ -1,0 +1,4 @@
+ less *S5* | cut -f1 | grep ^# -v | awk '{print ">"$1"\n"$1}' > temp.fa
+ blat exon2.fa temp.fa stdout -minScore=20 -stepSize=1  | cut -f10 > exon2Guides.txt
+ less *S5* | cut -f1 | grep ^# -v | awk '{print ">"$1"\n"$1}' > temp.fa
+ blat exon2.fa temp.fa stdout -minScore=20 -stepSize=1  -noHead | cut -f10 > exon2Guides.txt
