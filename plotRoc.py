@@ -142,7 +142,7 @@ def plotRoc(prefix, guideValidOts, guidePredOts, colors, styles, plots, labels, 
     return plots, labels, maxSens
 
 def main():
-    guideValidOts, guideSeqs = parseOfftargets("annotFiltOfftargets.tsv", maxMismatches, onlyAlt, validPams)
+    guideValidOts, guideSeqs = parseOfftargets("out/annotFiltOfftargets.tsv", maxMismatches, onlyAlt, validPams)
     guidePredOts = parseCrispor("crisporOfftargets", guideSeqs, maxMismatches)
     mitPredOts = parseMit("mitOfftargets", guideSeqs)
     cropitPredOts = parseCropit("cropitOfftargets", guideSeqs)
@@ -157,6 +157,7 @@ def main():
     colors = ["black", "blue", "green"]
     styles = ["-", "-", "-"]
 
+    plt.figure(figsize=(7,7))
     #dataName = "filtered BWA"
     dataName = "CRISPOR"
     plots, labels, maxSens1 = plotRoc(dataName, guideValidOts, guidePredOts, colors, styles, plots, labels, ofh)

@@ -3,6 +3,7 @@
 # and show how often we got at least one with a modification frequency > 70%
 
 from annotateOffs import *
+import numpy as np
 
 def filterGuides(guideData, scoreType, minScore):
     " remove all guides with a given score < minScore "
@@ -13,48 +14,108 @@ def filterGuides(guideData, scoreType, minScore):
             filtGuides.append(guide)
     return filtGuides
 
-def runSimulation(fname, reqMinFreq):
-    print "Using %s" % fname
-    guideData = []
-    for row in iterTsvRows(fname):
-        scores = dict()
-        scores["doench"] = float(row.doench)
-        scores["svm"] = float(row.svm)
-        scores["ssc"] = float(row.ssc)
-        guideData.append( (row.guide, float(row.modFreq), scores) )
+def getScoreRanges(inDir, percentile):
+    " for each score, get its range, return as dict scoreName -> (min, max) "
+    scoreTypes = ["doench", "ssc", "svm", "chariRaw", "finalGc6"]
 
-    print "min req mod freq: %f" % reqMinFreq
+    ranges = {}
+    for st in scoreTypes:
+        ranges[st] = [0.0,0.0]
+
+    # first calc all seq scores
+    seqKoEffs = {}
+    for fname in glob.glob(inDir+"/*.ext.tab"):
+        for row in iterTsvRows(fname):
+            freq = float(row.modFreq)
+            seqKoEffs[row.extSeq] = freq
+
+    seqScores = calcEffScores(seqKoEffs)
+
+    # now split them into fname -> list of (seq, koEff, scores)
+    fileGuideData = {}
+    fileMinReqFreqs = {}
+    for fname in glob.glob(inDir+"/*.ext.tab"):
+        guideData = []
+        koEffs = []
+        for row in iterTsvRows(fname):
+            seq = row.extSeq
+            scores = seqScores[seq]
+            koEff = seqKoEffs[seq]
+            guideData.append( (seq, koEff, scores) )
+            koEffs.append(koEff)
+
+            #for scoreType in scoreTypes:
+                #score = scores[scoreType]
+                #ranges[scoreType][0] = min(ranges[scoreType][0], score)
+                #ranges[scoreType][1] = max(ranges[scoreType][1], score)
+
+        dataName = basename(fname).split(".")[0]
+        koEffs.sort(reverse=True)
+        fileMinReqFreqs[dataName] = koEffs[int(len(koEffs)*percentile)]
+        fileGuideData[dataName] = guideData
+    #return ranges, guideData
+    return fileGuideData, fileMinReqFreqs
+
+def runSimulation(inDir, percentile):
+    #print "Using %s" % fname
+    #guideData = []
+    #for row in iterTsvRows(fname):
+    #    scores = dict()
+    #    scores["doench"] = float(row.doench)
+    #    scores["svm"] = float(row.svm)
+    #    scores["ssc"] = float(row.ssc)
+    #    guideData.append( (row.guide, float(row.modFreq), scores) )
+
+    guideDatas, reqMinFreqs  = getScoreRanges(inDir, percentile)
+
     print
 
-    for sampleSize in [1, 2, 3]:
-        print "sample size: %d" % sampleSize
-        
-        for scoreType in ["svm", "doench", "ssc"]:
-            print "score: ", scoreType
-            for minScore in range(0, 100, 20):
-                minScoreFloat = minScore/100.0
-                filtGuides = filterGuides(guideData, scoreType, minScoreFloat)
-                #print filtGuides
-                okCount = 0
-                if len(filtGuides)<10:
-                    #print "minScore %f: not enough guides" % minScore
-                    continue
-                for i in range(0, 1000):
-                    # take two guides and check if they have at least one with the req min freq
-                    selGuides = random.sample(filtGuides, sampleSize)
-                    #print selGuides
-                    for g in selGuides:
-                        if g[1] > reqMinFreq:
-                            okCount +=1
-                            break
-                succChance = float(okCount)/1000.0
-                print "sampleSize: %d, score > %f (%d guides): %0.2f chance" % \
-                    (sampleSize, minScoreFloat, len(filtGuides), succChance)
-        print 
+    # print realRanges
+    scoreRanges = {'doench': [0.0, 1.0], 'svm': [0.0, 1.0], 'chariRaw': [-3.0, +3.0], 'ssc': [-1.5, 1.5], 'finalGc6': [0.0, 6.0]}
+
+    for dataset, guideData in guideDatas.iteritems():
+        reqMinFreq = reqMinFreqs[dataset]
+        if not "xu2015Train" in dataset:
+            continue
+        print
+        print "dataset %s, min req mod freq: %f" % (dataset, reqMinFreq)
+
+        for sampleSize in [1, 2, 3]:
+            print "sample size: %d" % sampleSize
+            
+            for scoreType in ["svm", "doench", "ssc", "chariRaw", "finalGc6"]:
+                print "score: ", scoreType
+                minScore, maxScore = scoreRanges[scoreType]
+                for minScoreFloat in np.linspace(minScore, maxScore, 20):
+                    filtGuides = filterGuides(guideData, scoreType, minScoreFloat)
+                    #print filtGuides
+                    okCount = 0
+                    okSum = 0
+                    if len(filtGuides)<10:
+                        #print "minScore %f: not enough guides" % minScore
+                        continue
+                    for i in range(0, 1000):
+                        # take two (or more) guides and check if they have at least one with the req min freq
+                        selGuides = random.sample(filtGuides, sampleSize)
+                        #print selGuides
+                        foundOk = 0
+                        for g in selGuides:
+                            if g[1] > reqMinFreq:
+                                foundOk += 1
+                        if foundOk > 0:
+                            okCount += 1
+                        okSum += foundOk
+                    avgOk = float(okSum) / 1000
+                    succChance = float(okCount)/1000.0
+                    print "score > %f (%d guides): %0.2f chance, avg good guides %0.2f" % \
+                        (minScoreFloat, len(filtGuides), succChance, avgOk)
+            print 
 
 
 def main():
     #runSimulation("out/xu2015-compDoenchSsc.tsv", 80)
-    runSimulation("out/varshney2015-compDoenchSsc.tsv", 20)
+    #runSimulation("out/varshney2015-compDoenchSsc.tsv", 20)
+    # out/xu2015Train-compEffData.tsv
+    runSimulation("effData", 0.2)
 
 main()

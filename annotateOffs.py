@@ -147,7 +147,7 @@ def writeDict(d, fname):
         if type(v)==types.TupleType:
             ofh.write("%s\t%s\n" % (k, "\t".join([str(x) for x in v])))
         else:
-            ofh.write("%s\t%s\n" % (k, v))
+            ofh.write("%s\t%s\n" % (k, str(v)))
     ofh.close()
 
 def readDict(fname, isFloat=False):
@@ -247,7 +247,7 @@ def parseBeds(dirName):
     return ret
 
 def parseFasta(fileObj):
-    " parse a fasta file, where each seq is on a single line, return dict id -> seq "
+    " parse a fasta file, reture dict id -> seq "
     seqs = {}
     parts = []
     seqId = None
@@ -265,7 +265,7 @@ def parseFasta(fileObj):
     return seqs
 
 def parseFastaAsList(fileObj):
-    " parse a fasta file, where each seq is on a single line, return list (id, seq) "
+    " parse a fasta file, return list (id, seq) "
     seqs = []
     parts = []
     seqId = None
@@ -281,6 +281,22 @@ def parseFastaAsList(fileObj):
     if len(parts)!=0:
         seqs.append( (seqId, "".join(parts)) )
     return seqs
+
+def iterFastaSeqs(fileObj):
+    " parse a fasta file, yield (id, seq) "
+    parts = []
+    seqId = None
+    for line in fileObj:
+        line = line.rstrip("\n")
+        if line.startswith(">"):
+            if seqId!=None:
+                yield (seqId, "".join(parts))
+            seqId = line.lstrip(">")
+            parts = []
+        else:
+            parts.append(line)
+    if len(parts)!=0:
+        yield (seqId, "".join(parts))
 
 def parseFlanks(faDir):
     seqToFlank = {}
@@ -349,7 +365,7 @@ def calcSscScores(seqs):
     for lineIdx, line in enumerate(stdout.split("\n")):
         fs = line.split()
         if "Processing failed" in line:
-            raise Exception("SSC returned error")
+            raise Exception("SSC returned error, line %d" % lineIdx)
         seq, score = fs[0], float(fs[-1])
         scores[seq] = score
         lineIdx += 1
@@ -644,7 +660,7 @@ def parseOfftargets(fname, maxMismatches, onlyAlt, validPams):
             #print "skip", row
             skipCount += 1
             continue
-        if not row.otSeq[-2:] in validPams:
+        if validPams!=None and not row.otSeq[-2:] in validPams:
             print "not using off-target %s/%s, PAM is not NGG/NGA/NAG" % (row.name, row.otSeq)
             continue
 
@@ -688,7 +704,7 @@ def parseMit(dirName, guideSeqs):
     #print targetSeqs
     data = defaultdict(dict)
     for guideName in guideSeqs:
-    #for fname in fnames:
+    #"for fname in fnames:
         guideNameNoCell = guideName.replace("/K562", "").replace("/Hap1","")
         fname = join(dirName, guideNameNoCell+".csv")
         study = guideName.split("_")[0]
@@ -794,6 +810,7 @@ def seqToVec(guideSeq, otSeq):
     2 - is a T-T, G-G, A-A match or C->T, T-G, C->A, G->A, A->G mismatch?
     3 - is a T->C or C->C match?
     >>> seqToVec("AAGTCCGAGCAGAAGAAGAA","AAGTCCCAGCAGAGGAAGCA")
+    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
     """
     indexPos = {
         "GT" : 0,
@@ -913,7 +930,7 @@ def calcChariScores(seqs, baseDir="."):
 
 chariScores = None
 
-def lookupchariScore(seq):
+def lookupChariScore(seq):
     " retrieve one chari score from chariScores.tab, return tuple (rawScore, relPercRank) "
     assert(len(seq)==23)
     seq = seq.upper()
@@ -936,10 +953,291 @@ def calcEffScores(seqs):
         scores[seq]["doench"] = calcDoenchScore(seq[:30])
         scores[seq]["ssc"] = sscScores[seq[-30:]]
         scores[seq]["svm"] = 1.0 - lookupSvmScore(seq[4:24])
-        chariRaw, chariRank = lookupchariScore(seq[4:27])
+        chariRaw, chariRank = lookupChariScore(seq[4:27])
         scores[seq]["chariRaw"] = chariRaw
         scores[seq]["chariRank"] = chariRank
+
+        guideSeq = seq[4:24]
+        scores[seq]["finalGc6"] = countFinalGc(guideSeq, 6)
+        scores[seq]["finalGc2"] = countFinalGc(guideSeq, 2)
     return scores
+
+def countFinalGc(seq, lastCount):
+    """ return the  GC count of the 20mer sequence in the last few base pairs
+    >>> countFinalGc("ATAGACCTACCTTGTTGAAG", 3)
+    1.0
+    >>> countFinalGc("AAAAAAAAAAAAAAAAAAAA", 10)
+    0.0
+    """
+    assert(len(seq)==20)
+    wgc = 0.0
+    for nucl in seq[-lastCount:]:
+        if nucl == "G" or nucl=="C":
+            wgc += 1.0
+    return wgc
+
+def convToRankPerc(vec):
+    """ given a list of values, return their rank-percentiles as a list in the same order 
+    >>> convToRankPerc([1,1,5,3,3])
+    [0.2, 0.2, 0.8, 0.6, 0.6]
+    """
+    sortVec = list(sorted(vec))
+    valToPercRank = dict()
+    for i in range(0, len(sortVec)):
+        percRank = float(i)/len(sortVec)
+        valToPercRank[sortVec[i]] = percRank
+
+    percRankVec = []
+    for x in vec:
+        percRankVec.append(valToPercRank[x])
+    return percRankVec
+
+# sqlUcsc hgcentral -e 'select * from blatServers where db="mm9"'
+# rsync -avp hgdownload.soe.ucsc.edu::gbdb/dm3/dm3.2bit ./ --progress --partial
+blatServers = {
+    "hg19": ("blat4a", "17779"),
+    "danRer10" : ("blat4c", "17863"),
+    "dm3" : ("blat4d", "17791"),
+    "ce6" : ("blat4d", "17841"),
+    "mm9" : ("blat4c", "17779")
+}
+
+def extendSeqs(seqs, db, fiveExt, threeExt):
+    """ extend seqs for eff score calculations, seqs is a dict id -> seq
+    by fiveExt and threeExt into 5' / 3' direction
+    return a dict seqId -> list of (newSeq, genomePositionString)
+    """
+    ret = defaultdict(list)
+
+    # fill the ret object with everything we have in the cache
+    cacheFname ="out/blatCache.tab"
+    print "Opening %s" % cacheFname
+    blatCache = parseBlatCache(cacheFname)
+    for seq in seqs:
+        if seq in blatCache:
+            ret[seq] = blatCache[seq]
+
+    # return what we have if nothing left to do
+    if len(set(seqs)-set(ret))==0:
+        return ret
+    # remove what we got from the cache from seqs
+    for seq in ret:
+        seqs.remove(seq)
+
+    # now start the blatting procedure
+    # write 23mers to fa file
+    inNames = set()
+    ofh = open("/tmp/temp.fa", "w")
+    seqLen = None
+    for seqId, seq in seqs.iteritems():
+        ofh.write(">%s\n%s\n" % (seqId, seq))
+        if seqLen!=None:
+            assert(len(seq)==seqLen)
+        else:
+            seqLen=len(seq)
+        inNames.add(seqId)
+    ofh.close()
+
+    print "running BLAT, writing to /tmp/temp.bed"
+    blatServer, port = blatServers[db]
+    cmd = "gfClient %s.soe.ucsc.edu %s /gbdb/%s /tmp/temp.fa /tmp/temp.psl -minScore=20 -nohead -minIdentity=100 -maxIntron=0 -dots=1 ; pslToBed /tmp/temp.psl /tmp/temp.bed" % (blatServer, port, db)
+    os.system(cmd)
+
+    matches = defaultdict(list) # seqId -> list of (chrom, start, end, strand)
+    for line in open("/tmp/temp.bed"):
+        chrom, start, end, name, score, strand = line.split()[:6]
+        if "_hap" in chrom or "random" in chrom:
+            continue
+        ##print int(end)-int(start)
+        if (int(end)-int(start))!=seqLen:
+            #print "SKIP", line
+            continue
+        matches[name].append( (chrom, int(start), int(end), strand) )
+
+    notFoundNames = inNames - set(matches)
+    logging.warn("These sequences were not found with BLAT: %s" % ",".join(notFoundNames))
+    #assert( len(seqs) == len(matches) )
+
+    # write matches to temp.bed file
+    # SSC needs extension by +7 bp of the end position
+    # Doench needs extension -4 of the start and +3 of the end pos
+    print "Creating /tmp/tempExt.bed with extended matches"
+    ofh = open("/tmp/tempExt.bed", "w")
+    positions = []
+    for seqId, matchTuples in matches.iteritems():
+        if len(matchTuples)>1:
+            logging.error("Multiple matches for %s, will require manual selection" % seqId)
+            logging.error("%s" % matchTuples)
+        for matchTuple in matchTuples:
+            chrom, start, end, strand = matchTuple
+            if strand=="+":
+                start = start - fiveExt
+                end = end + threeExt
+            else:
+                start = start - threeExt
+                end = end + fiveExt
+            row = [chrom, str(start), str(end), seqId, "0", strand]
+            ofh.write("\t".join(row)+"\n")
+            positions.append( "%s:%d-%d:%s" % (chrom, start, end, strand))
+    ofh.close()
+
+    cmd = "twoBitToFa /gbdb/%s/%s.2bit -bed=/tmp/tempExt.bed /tmp/tempExt.fa" % (db, db)
+    os.system(cmd)
+    seqs = parseFastaAsList(open("/tmp/tempExt.fa"))
+    assert(len(seqs)==len(positions))
+
+    for seqData, pos in zip(seqs, positions):
+        seqId, seq = seqData
+        ret[seqId].append( (seq, pos) )
+
+    return ret
+
+def addDoenchAndScs(fname):
+    " given tab file with extSeq column, yield (guide, modFreq, scoreType -> score) "
+    seqs = []
+    freqs = {}
+    for row in iterTsvRows(fname):
+        seqs.append(row.extSeq)
+        freqs[row.extSeq] = (row.guide, float(row.modFreq))
+    effScores = calcEffScores(seqs)
+
+    #for row in iterTsvRows(fname):
+        #yield row.guide, row.modFreq, effScores[row.seq]
+    return effScores, freqs
+
+def extend23Mers(seqs, db):
+    """ extend 23mers to 30mers for eff score calculations, seqs is a dict id -> seq 
+    return a dict seqId -> list of (seq, genomePositionString)
+    """
+    print "extending %d 23mer sequences on genome" % len(seqs)
+    ret = defaultdict(list)
+
+    # fill the ret object with everything we have in the cache
+    cacheFname ="out/blatCache.tab"
+    print "Opening %s" % cacheFname
+    blatCache = parseBlatCache(cacheFname)
+    for seqId, seq in seqs.iteritems():
+        if seq in blatCache:
+            ret[seqId] = blatCache[seq]
+
+    # remove what we got from seqs
+    for seqId in ret:
+        del seqs[seqId]
+
+    if len(seqs)==0:
+        return ret
+
+    print "%d left for BLAT" % len(seqs)
+    print seqs
+
+    # write 23mers to fa file
+    inNames = set()
+    ofh = open("/tmp/temp.fa", "w")
+    for seqId, seq in seqs.iteritems():
+        ofh.write(">%s\n%s\n" % (seqId, seq))
+        inNames.add(seqId)
+    ofh.close()
+
+    print "running BLAT, writing to /tmp/temp.bed"
+    blatServer, port = blatServers[db]
+    cmd = "gfClient %s.soe.ucsc.edu %s /gbdb/%s /tmp/temp.fa /tmp/temp.psl -minScore=20 -nohead -minIdentity=100 -maxIntron=0 -dots=1 ; pslToBed /tmp/temp.psl /tmp/temp.bed" % (blatServer, port, db)
+    os.system(cmd)
+
+    matches = defaultdict(list) # seqId -> list of (chrom, start, end, strand)
+    for line in open("/tmp/temp.bed"):
+        chrom, start, end, name, score, strand = line.split()[:6]
+        if "_hap" in chrom or "random" in chrom:
+            continue
+        ##print int(end)-int(start)
+        if (int(end)-int(start))!=23:
+            #print "SKIP", line
+            continue
+        matches[name].append( (chrom, int(start), int(end), strand) )
+
+    notFoundNames = inNames - set(matches)
+    logging.warn("These sequences were not found with BLAT: %s" % ",".join(notFoundNames))
+    #assert( len(seqs) == len(matches) )
+
+    # write matches to temp.bed file
+    # SSC needs extension by +7 bp of the end position
+    # Doench needs extension -4 of the start and +3 of the end pos
+    print "Creating /tmp/tempExt.bed with extended matches"
+    ofh = open("/tmp/tempExt.bed", "w")
+    positions = []
+    for seqId, matchTuples in matches.iteritems():
+        if len(matchTuples)>1:
+            logging.error("Multiple matches for %s, will require manual selection" % seqId)
+            logging.error("%s" % matchTuples)
+        for matchTuple in matchTuples:
+            chrom, start, end, strand = matchTuple
+            if strand=="+":
+                start = start - 4
+                end = end + 7
+            else:
+                start = start - 7
+                end = end + 4
+            row = [chrom, str(start), str(end), seqId, "0", strand]
+            ofh.write("\t".join(row)+"\n")
+            positions.append( "%s:%d-%d:%s" % (chrom, start, end, strand))
+    ofh.close()
+
+    cmd = "twoBitToFa /gbdb/%s/%s.2bit -bed=/tmp/tempExt.bed /tmp/tempExt.fa" % (db, db)
+    os.system(cmd)
+    seqs = parseFastaAsList(open("/tmp/tempExt.fa"))
+    assert(len(seqs)==len(positions))
+
+    for seqData, pos in zip(seqs, positions):
+        seqId, seq = seqData
+        ret[seqId].append( (seq, pos) )
+
+    return ret
+
+def extendTabAddContext(fname, db):
+    """
+    add a column to a tab file with a seq column: new column is called seqExt with 34 mers
+    additional column is pos, with chrom:start-end:strand
+    Is a NoOp if the ext.tab file already exists
+    """
+    newFname = fname.replace(".tab", ".ext.tab")
+    if isfile(newFname):
+        logging.info("not recreating %s, already exists. Delete to recreate" % newFname)
+        return newFname
+    if db==None:
+        return newFname
+
+    seqs = dict()
+    for row in iterTsvRows(fname):
+        seqs[row.guide] = row.seq
+    seqPosDict = extend23Mers(seqs, db)
+
+    ofh = open(newFname, "w")
+    ofh.write("\t".join(row._fields)+"\t")
+    ofh.write("extSeq\tposition\n")
+
+    for row in iterTsvRows(fname):
+        guideName = row.guide
+        for seqPos in seqPosDict[guideName]:
+            seq, pos = seqPos
+            ofh.write("\t".join(row)+"\t"+seq+"\t"+pos+"\n")
+    ofh.close()
+    print "Wrote result to %s" % ofh.name
+    return newFname
+
+def parseEffScores(datasetName, db=None):
+    """ parse an efficiency dataset from the effData/ directory and return 
+    a dict seq -> scoreType -> score and dict seq -> (guideName, modFreq)
+    """
+    inFname = join("effData/"+datasetName+".tab")
+    extFname = extendTabAddContext(inFname, db)
+    scores, freqs = addDoenchAndScs(extFname)
+    return scores, freqs
+
+def parseBlatCache(fname):
+    " return dict 23mer -> list of (34mer, genomePos) "
+    data = defaultdict(list)
+    for row in iterTsvRows(fname):
+        data[row.seq].append((row.extSeq, row.position))
+    return data
 
 if __name__=="__main__":
     import doctest

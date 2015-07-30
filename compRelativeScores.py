@@ -81,10 +81,10 @@ def compPairs(fname, minScoreDiff):
 
 def main():
     # parse the input file
-    compPairs("out/xu2015-compDoenchSsc.tsv", 20)
-    compPairs("out/varshney2015-compDoenchSsc.tsv", 20)
-    compPairs("out/xu2015Train-compDoenchSsc.tsv", 0.9)
+    #compPairs("out/xu2015-compDoenchSsc.tsv", 20)
+    compPairs("out/varshney2015-compEffData.tsv", 20)
+    #compPairs("out/xu2015Train-compDoenchSsc.tsv", 0.9)
     #compPairs("out/doench2014-S7-9Genes-compDoenchSsc.tsv", 1.0)
-    compPairs("out/doench2014-S10-414Genes-compDoenchSsc.tsv", 0.5)
+    compPairs("out/doench2014-Hs-compEffData.tsv", 0.5)
 
 main()
