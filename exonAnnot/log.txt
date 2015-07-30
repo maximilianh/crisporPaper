@@ -1,0 +1,2 @@
+ genePredToBed refGene.gp stdout | grep -v hap | grep -v chrUn | bedToExons stdin stdout -cdsOnly | bedNumberExons > exons.bed
+ less refGene.gp  | cut -f1,12 | sort | uniq > ref2sym.tab

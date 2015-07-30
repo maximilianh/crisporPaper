@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+
+import logging, sys, optparse
+from collections import defaultdict
+from os.path import join, basename, dirname, isfile
+from collections import defaultdict
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("usage: %prog [options] filename - read bed from stdin, add a number to the name field to indicate the exon")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+#parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+(options, args) = parser.parse_args()
+
+if options.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+# ==== FUNCTIONs =====
+    
+# ----------- MAIN --------------
+#if args==[]:
+    #parser.print_help()
+    #exit(1)
+
+beds = []
+lastName = None
+
+for line in sys.stdin:
+    row = line.rstrip("\n").split()
+    name = row[3]
+    if name!=lastName and lastName!=None:
+        for i, bed in enumerate(beds):
+            if bed[5]=="+":
+                bed[3] = bed[3]+"|exon%d" % (i+1)
+            else:
+                bed[3] = bed[3]+"|exon%d" % (len(beds)-i)
+            print "\t".join(bed)
+        beds = []
+    lastName = name
+    beds.append(row)
+    #chrom, start, end, name, score, strand 
+
+
