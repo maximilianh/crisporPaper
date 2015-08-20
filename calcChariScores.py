@@ -11,6 +11,8 @@ oldScores = readDict("chariScores.tab")
 for fname in glob.glob("effData/*.tab"):
     print "reading %s" % fname
     for row in iterTsvRows(fname):
+        if not len(row.seq)==23:
+            print row
         assert(len(row.seq)==23)
         seq = row.seq.upper()
         if seq not in oldScores:

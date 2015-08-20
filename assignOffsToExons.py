@@ -7,8 +7,14 @@ import glob
 ofh = open("/tmp/temp.bed", "w")
 
 for fname in glob.glob("effData/*.ext.tab"):
+    dataset = basename(fname).split(".")[0]
+    if ("chari" in dataset and "Valid" in dataset) or datasetToGenome[dataset] != "hg19":
+        continue
+
+    print fname
     for row in iterTsvRows(fname):
         if "position" not in row._fields:
+            print "skipping %s" % fname
             break
         chrom, startEnd, strand = row.position.split(":")
         start, end = startEnd.split("-")
@@ -31,10 +37,17 @@ for seq, exons in readDictList("/tmp/temp.tab").iteritems():
     symExons = set()
     sym = None
     exonId = None
+    refIdToExonId = {}
     for ex in exons:
         refId, exonId = ex.split("|")
         sym = ref2Sym.get(refId, refId)
-        symExons.add(sym+"|"+exonId)
+        symExons.add(refId+"|"+exonId)
+        refIdToExonId[refId] = exonId
+    preferRefIds = ["NM_001772"]
+    for prefId in preferRefIds:
+        if prefId in refIdToExonId:
+            exonId = refIdToExonId[prefId]
+        
     others = ",".join(symExons)
     row = [seq, sym, exonId, others]
     ofh2.write("\t".join(row)+"\n")

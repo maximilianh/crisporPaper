@@ -126,44 +126,6 @@ def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
     print "wrote %s" % outfname
     plt.close()
 
-def parseOfftargets(inFname, ignoreStudies):
-    " parse the off-targets, count and return indexed "
-    targetSeqs = {}
-    inRows = []
-    otCounts = defaultdict(int)
-    for row in iterTsvRows(inFname):
-        # by removing the prefix before /, treat Kim's two cell lines as one experiment
-        study = row.name.split("_")[0].split("/")[0]
-        if study in ignoreStudies:
-            continue
-        if row.type=="on-target":
-            targetSeqs[row.name] = row.seq
-        else:
-            datasetName = row.name
-            datasetName = datasetName.replace("/Hap1","").replace("/K562","")
-            otCounts[datasetName] += 1
-            inRows.append(row)
-    return inRows, targetSeqs, otCounts
-
-def makeOutRows(inRows, targetSeqs):
-    rows = []
-    guideNames = set()
-    for row in inRows:
-        guideSeq = targetSeqs[row.name]
-        otSeq = row.seq
-        mmCount, diffLogo = countMms(guideSeq[:-3], otSeq[:-3])
-        if len(guideSeq)==23:
-            otScore = calcHitScore(guideSeq[:-3], otSeq[:-3])
-        else:
-            otScore = "NA_not20mer"
-        guideGc = gcCont(guideSeq)
-        otRow = [row.name, guideSeq, otSeq, str(guideGc), row.score, str(mmCount), otScore, diffLogo]
-        rows.append(otRow)
-        guideNames.add(row.name)
-
-    rows.sort(key=operator.itemgetter(6))
-    return rows, guideNames
-
 def indexOfftargets(inRows, minFrac, targetSeqs):
     " index offtargets by mismatchCount and return as dict mismatchCount -> (guideName, frequency) "
     fractions = defaultdict(list)
@@ -179,25 +141,10 @@ def indexOfftargets(inRows, minFrac, targetSeqs):
     return fractions
 
 def main():
-    headers = ["name", "guideSeq", "otSeq", "guideGc", "readFraction", "mismatches", "otScore", "diffLogo"]
-    inFname = "offtargetsFilt.tsv"
-    ignoreStudies = []
+    inFname = "out/offtargetsFilt.tsv"
+    inRows, targetSeqs = parseRawOfftargets(inFname)
 
-    inRows, targetSeqs, otCounts = parseOfftargets(inFname, ignoreStudies)
-
-    rows, guideNames = makeOutRows(inRows, targetSeqs)
-
-    # write out rows
-    ofh = open("annotFiltOfftargets.tsv", "w")
-    ofh.write( "\t".join(headers) )
-    ofh.write( "\n")
-    for row in rows:
-        assert(len(row)==len(headers))
-        row = [str(x) for x in row]
-        ofh.write( "\t".join(row)+"\n")
-    print "wrote %s" % ofh.name
-
-    siteCountsByMismatch = readSiteCounts("crisporOfftargets", guideNames)
+    siteCountsByMismatch = readSiteCounts("crisporOfftargets", targetSeqs)
     fractions = indexOfftargets(inRows, 0.0, targetSeqs)
     plotFractions(fractions, siteCountsByMismatch, 0.0, "out/mismatchFraction-all")
 

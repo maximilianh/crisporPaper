@@ -3,10 +3,26 @@ import glob, copy, sys, math, operator, random, re, collections, tempfile, subpr
 from collections import defaultdict, Counter
 from os.path import basename, join, splitext, isfile, dirname
 
+logging.basicConfig(loglevel=logging.INFO)
+
 # for the chari code
 import time, gzip, platform
 
-logging.basicConfig(loglevel=logging.INFO)
+# assignment of activity datasets to genomes
+datasetToGenome = {
+    "xu2015Train": "hg19",
+    "doench2014-Hs": "hg19",
+    "doench2014-Mm": "mm9",
+    "doench2014-CD33Exon2": "hg19",
+    "varshney2015": "danRer10",
+    "gagnon2014": "danRer10",
+    "xu2015": "hg19",
+    "ren2015": "dm3",
+    "farboud2015": "ce6",
+    "schoenig": "rn5",
+    "chari2015Train": "hg19"
+}
+
 
 def iterTsvRows(inFile, encoding=None, fieldSep="\t", isGzip=False, skipLines=None, \
         makeHeadersUnique=False, commentPrefix=None, headers=None):
@@ -85,9 +101,36 @@ def calcMitGuideScore(hitSum):
     score = int(round(score*100))
     return score
 
-def calcMitGuideScore_offs(guideSeq, otSeqs):
+def calcMitGuideScore_offs(guideSeq, otSeqs, maxMm=None, minHitScore=None, minAltHitScore=None):
     " calc mit spec score given a guide and a list of off-target sequences "
-    scoreSum = sum([calcHitScore(guideSeq, ots) for ots in otSeqs])
+    if maxMm:
+        newOtSeqs = []
+        for otSeq in otSeqs:
+            mmCount, diffLogo = countMms(otSeq, guideSeq)
+            if mmCount <= maxMm:
+                newOtSeqs.append(otSeq)
+        otSeqs = newOtSeqs
+            
+    # split seqs into main and alt
+    altOts = []
+    mainOts = []
+    for ot in otSeqs:
+        assert(len(ot)==23)
+        if ot.endswith("AG") or ot.endswith("GA"):
+            altOts.append(ot)
+        else:
+            assert(ot.endswith("GG"))
+            mainOts.append(ot)
+
+    # calc and filter hit scores
+    mainHitScores = [calcHitScore(guideSeq, ot) for ot in mainOts]
+    mainHitScores = [h for h in mainHitScores if h > minHitScore]
+    altHitScores  = [calcHitScore(guideSeq, ot) for ot in altOts]
+    altHitScores  = [h for h in altHitScores if h > minAltHitScore]
+
+    mainHitScores.extend(altHitScores)
+
+    scoreSum = sum(mainHitScores)
     return calcMitGuideScore(scoreSum)
 
 def calcHitScore(string1,string2, startPos=0):
@@ -149,6 +192,26 @@ def writeDict(d, fname):
         else:
             ofh.write("%s\t%s\n" % (k, str(v)))
     ofh.close()
+
+def readDictList(fname, isFloat=False):
+    " read tab-sep file into a defaultdict(list) "
+    logging.info("Reading %s" %fname)
+    data = defaultdict(list)
+    for line in open(fname):
+        if line.startswith("#"):
+            continue
+        fs = line.rstrip("\n").split("\t")
+        if len(fs)==2:
+            k, v = fs
+            if isFloat:
+                v = float(v)
+        else:
+            k = fs[0]
+            v = tuple(fs[1:])
+            if isFloat:
+                v = tuple([float(x) for x in v])
+        data[k].append(v)
+    return data
 
 def readDict(fname, isFloat=False):
     " read dict from a tab sep file "
@@ -308,6 +371,7 @@ def parseFlanks(faDir):
     return seqToFlank
 
 def gcCont(seq):
+    assert(len(seq)==20)
     seq = seq.upper()
     return int(100*float(seq.count("C")+seq.count("G")) / len(seq))
 
@@ -338,7 +402,7 @@ gcHigh    = -0.1665878
 gcLow     = -0.2026259
 
 binDir = "../crispor/bin/Darwin"
-baseDir = "../crispor"
+baseDir = "../crispor/"
 
 def calcSscScores(seqs):
     """ calc the SSC scores from the paper Xu Xiao Chen Li Meyer Brown Lui Gen Res 2015 
@@ -572,9 +636,14 @@ def removeOneNucl(seq):
 
 def countMms(string1, string2):
     """ count mismatches between two strings, return mmCount, diffLogo 
+    uses only the first 20 nucleotides
     >>> countMms("CCTGCCTCCGCTCTACTCACTGG", "TCTGCCTCCTTTATACTCACAGG")
-    (5, '*........**.*.......*..')
+    (4, '*........**.*.......')
     """
+    if len(string1)==23:
+        string1 = string1[:20]
+        string2 = string2[:20]
+
     mmCount = 0
     string1 = string1.upper()
     string2 = string2.upper()
@@ -588,8 +657,12 @@ def countMms(string1, string2):
 
     return mmCount, "".join(diffLogo)
 
-def findGappedSeqs(guideSeq, offtargetSeq):
+def findGappedSeqs(guideSeq, offtargetSeq, minMm=9999):
     """ return list of gapped versions of otSeq with lower mismatch count than mmCount
+    the mismatch count of the gapped sequences have to be at least lower than
+    minMm otherwise nothing will be returned.0
+    >>> findGappedSeqs("AATAGC", "AATTAG")
+    (1, ['AATAG(C)'], ['ATTAG'], ['.*...'])
     >>> findGappedSeqs("AATAGC", "AATTAG")
     (1, ['AATAG(C)'], ['ATTAG'], ['.*...'])
     >>> findGappedSeqs("CGTACA", "AAGTCA")
@@ -598,6 +671,8 @@ def findGappedSeqs(guideSeq, offtargetSeq):
     (1, ['TGGATGG(A)GGAATGAGGAGT'], ['AGGATGGGGAATGAGGAGT'], ['*..................'])
     >>> findGappedSeqs("TGGATGGAGGAATGAGGAGT", "GAGGATGGGGAATGAGGAGT")
     (1, ['TGGATGG(A)GGAATGAGGAGT'], ['AGGATGGGGAATGAGGAGT'], ['*..................'])
+    >>> findGappedSeqs("AATAGC", "AATTAG", 1)
+    (1, [], [], [])
     """
     # AATAGC
     # AATTAG
@@ -614,8 +689,7 @@ def findGappedSeqs(guideSeq, offtargetSeq):
     # remove either first or last bp from guide
     offtarget1 = offtargetSeq[1:]
     offtarget2 = offtargetSeq[:-1]
-    # remove one bp in turn from ot
-    minMm = 99999
+    # remove one bp in turn from guideSeq
     guideSeqs = defaultdict(list)
     logos = defaultdict(list)
     gapPos = defaultdict(list)
@@ -670,6 +744,22 @@ def parseOfftargets(fname, maxMismatches, onlyAlt, validPams):
         otScores[row.guideSeq][row.otSeq] = float(row.readFraction)
     print "Skipped %d rows with more than %d mismatches" % (skipCount, maxMismatches)
     return otScores, guideSeqs
+
+def parseRawOfftargets(inFname, removeCellLine=True):
+    """ parse the raw list of off-targets, in the format of offtargets.tsv.
+    returns list of rows and a dict guideName -> guideSeq 
+    """
+    targetSeqs = {}
+    inRows = []
+    for row in iterTsvRows(inFname):
+        if removeCellLine:
+            # by removing the prefix before /, treat Kim's two cell lines as one experiment
+            study = row.name.split("_")[0].split("/")[0]
+        if row.type=="on-target":
+            targetSeqs[row.name] = row.seq
+        else:
+            inRows.append(row)
+    return inRows, targetSeqs
 
 def parseOfftargetsWithNames(fname, maxMismatches, onlyAlt, validPams, useOtNames=False):
     """ parse the annotated validated off-target table and return as dict
@@ -731,9 +821,10 @@ def parseMit(dirName, guideSeqs):
     return data
 
 def parseCrispor(dirName, guideNames, maxMismatches):
-    """ parse rispor output files, return as dict guideSeq -> ot seq -> otScore 
+    """ parse crispor output files, return as dict guideSeq -> ot seq -> otScore 
     Also return a dict with guideName -> guideSeq
     """
+    print("Parsing CRISPR results from dir %s" % dirName)
     predScores = defaultdict(dict)
     #targetSeqs = {}
     #for fname in glob.glob(dirName+"/*.tsv"):
@@ -742,74 +833,189 @@ def parseCrispor(dirName, guideNames, maxMismatches):
         # remove cell lines for KIM et al
         guideName = guideName.replace("/K562", "").replace("/Hap1","")
         # fix a few typos
-        #guideName = guideName.replace("WAS-CR", "WAS-CR-")
-        #guideName = guideName.replace("Kim_VEGFA", "Kim_VEGF_A")
         fname = join(dirName, guideName+".tsv")
         print "parsing %s" % fname
         for row in iterTsvRows(fname):
             if int(row.mismatchCount)>maxMismatches:
+                #print "too many mismatches", row, maxMismatches
+                continue
+            if "hap" in row.chrom or "random" in row.chrom or "chrUn" in row.chrom:
+                #print "strange chrom, skipping %s" % str(row)
                 continue
             guideName = splitext(basename(fname))[0]
             predScores[row.guideSeq][row.offtargetSeq] = float(row.offtargetScore)
+            if row.offtargetSeq=="GAATCCTAAATACTCTCCTTCGG":
+                print "XX", row.guideSeq, row.offtargetSeq
             #targetSeqs[guideName] = row.guideSeq
     return predScores
 
+compTable = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n", 
+        "Y":"R", "R" : "Y", "M" : "K", "K" : "M", "W":"W", "S":"S",
+        "H":"D", "B":"V", "V":"B", "D":"H", "y":"r", "r":"y","m":"k",
+        "k":"m","w":"w","s":"s","h":"d","b":"v","d":"h","v":"b","y":"r","r":"y" }
+
 def revComp(seq):
-    table = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n", 
-            "Y":"R", "R" : "Y", "M" : "K", "K" : "M", "W":"W", "S":"S",
-            "H":"D", "B":"V", "V":"B", "D":"H", "y":"r", "r":"y","m":"k",
-            "k":"m","w":"w","s":"s","h":"d","b":"v","d":"h","v":"b","y":"r","r":"y" }
     newseq = []
     for nucl in reversed(seq):
-       newseq += table[nucl]
+       newseq += compTable[nucl]
     return "".join(newseq)
 
-def useRanks(vals):
+def useRanks(vals, doPercent=False, doQuart=False):
     """ replace values in list with their rank 
-    >>> useRanks([0.5, 0.1, 1.5])
-    [1, 0, 2]
+    >>> useRanks([0.5, 0.1, 1.5, 1.5])
+    [1, 0, 2, 2]
     """
     newList = []
     sortedList = list(sorted(vals))
     for x in vals:
         newList.append(sortedList.index(x))
+
+    if doPercent or doQuart:
+        list2 = []
+        for i, val in enumerate(newList):
+            perc = float(val)/len(newList)
+            list2.append(perc)
+        newList = list2
+
+    if doQuart:
+        list2 = []
+        for val in newList:
+            if val<0.25:
+                x = 1
+            elif val < 0.5:
+                x = 2
+            elif val < 0.75:
+                x = 3
+            elif val < 1.0:
+                x = 4
+            else:
+                assert(False)
+            list2.append(x)
+        newList = list2
+
     return newList
 
-hsuMat = None # dict with (fromNucl, toNucl) -> list of 19 scores
+def complRna(seq):
+    " complement the sequence and translate to RNA "
+    newseq = []
+    for nucl in seq.upper():
+        newseq.append( compTable[nucl].replace("T", "U") )
+    return "".join(newseq)
 
-def calcHsuSuppScore(guideSeq, seq, baseDir="."):
-    """ calculate the score described on page 17 of the Hsu 2013 supplement 
-    >>> calcHsuSuppScore("AGTCCGAGCAGAAGAAGAA","AGTCCCAGCAGAGGAAGCA")
+hsuMat = None # dict with (fromNucl, toNucl) -> list of 19 scores
+avgFreqs = None # list of 19 scores
+
+def parseHsuMat(fname):
+    """ return the hsu 2013 matrix as a dict rnaNucl -> dnaNucl -> list of scores and a list of 19 averages
+    #>>> parseHsuMat("./hsu2013/fig2cData.txt")
     """
-    assert(len(seq)==19)
+    hsuMat = {}
+    minMat = 99999.0
+    maxMat = 0.0
+    for line in open(fname):
+        if line.startswith("nucl"):
+            continue
+        fs = line.rstrip("\n").split()
+        # the values are in the order 19-1 3'-5' in the file, but our sequences are always 1-19, 5'-3'
+        freqs = list(reversed([float(x) for x in fs[1:]]))
+        if line.startswith("avg"):
+            avgs = freqs
+            continue
+        nuclComb = fs[0]
+        rnaNucl, dnaNucl = nuclComb.split(":")
+        hsuMat[ (rnaNucl, dnaNucl)] = freqs
+        minMat = min(min(freqs), minMat)
+        maxMat = max(max(freqs), maxMat)
+
+    # normalize
+    # "Each frequency was normalized to range from 0 to 1, such that f = (f-fmin) / (fmax-fmin)"
+    normAvgs = [(a-min(avgs)) / (max(avgs)-min(avgs)) for a in avgs]
+    normMat = {}
+    for key, freqs in hsuMat.iteritems():
+        normMat[key] = [( f - minMat) / (maxMat - minMat) for f in freqs]
+    normAvgs[4] = 0.001
+    assert(min(normAvgs)!=0.0)
+    return normMat, normAvgs
+
+def calcHsuSuppScore(guideSeq, otSeq, baseDir="./"):
+    """ calculate the score described on page 17 of the Hsu et al 2013 supplement PDF
+    >>> calcHsuSuppScore("AGTCCGAGCAGAAGAAGAA","AGTCCGAGCAGAAGAAGAG")
+    0.4509132855355929
+    >>> calcHsuSuppScore("TGTCCGAGCAGAAGAAGAA","AGTCCGAGCAGAAGAAGAA")
+    0.007929899123452079
+    >>> calcHsuSuppScore("AGTCCGAGCAGAAGAAGAA","AGTCAGAACAGAAGAACAA")
+    >>> countMmsAndLogo("AGTCCGAGCAGAAGAAGAA","AGTCAGAACAGAAGAACAA")
+    (3, '....*..*........*..')
+    """
+    assert(len(otSeq)==19)# Hsu ignores pos 0
     assert(len(guideSeq)==19)
     global hsuMat
+    global avgFreqs
     if hsuMat is None:
-        hsuMat = dict()
-        matFname = baseDir+"/hsu2013/fig2cData.txt"
-        for line in open(matFname):
-            if line.startswith("nucl") or line.startswith("avg"):
-                continue
-            fs = line.rstrip("\n").split()
-            nuclComb = fs[0]
-            fromNucl, toNucl = nuclComb.split(":")
-            fromNucl = fromNucl.replace("U", "T")
-            hsuMat[ (fromNucl, toNucl)] = [float(x) for x in fs[1:]]
-        hsuMat[("G", "C")] = hsuMat[ ('A', "A")]
+        matFname = baseDir+"hsu2013/fig2cData.txt"
+        hsuMat, avgFreqs = parseHsuMat(matFname)
 
-    score = 0
+    rnaSeq = complRna(guideSeq)
+    # "Predicted cutting frequencies for genome-wide targets were calculated by
+    # multiplying, in series: fest = f(1) * g(N1,N1') * f(2) * g(N2,N2') * ... * h
+    # with values f(i) and g(Ni, Ni')
+    # at position i corresponding, respectively, to the aggregate
+    # position- and base-mismatch cutting frequencies for positions and pairings indicated in Fig. 2c"
+    mismatchPosList = []
+    score = 1.0
     for i in range(0, 19):
-        fromNucl, toNucl = guideSeq[i], seq[i]
-        #return hsuMat[(fromNucl, toNucl)]
-        diff = hsuMat[(fromNucl, toNucl)][i]
+        rnaNucl, dnaNucl = rnaSeq[i], otSeq[i]
+        # "In case of a match, both were set equal to 1."
+        if (rnaNucl, dnaNucl) in [('C', 'G'), ('U', 'A'), ('A', 'T'), ('G', 'C')]:
+            f = 1.0
+            g = 1.0
+        else:
+            f = avgFreqs[i]
+            g = hsuMat[(rnaNucl, dnaNucl)][i]
+            mismatchPosList.append(i)
+        #print rnaSeq, guideSeq, i, rnaNucl, dnaNucl, f, g
+        score *= f * g
 
-def seqToVec(guideSeq, otSeq):
+    # "The value h meanwhile re-weighted the estimated
+    # frequency by the minimum pairwise distance between consecutive mismatches in the target
+    # sequence. This distance value, in base-pairs, was divided by 18 to give a maximum value of 1 (in
+    # cases where fewer than 2 mismatches existed, or where mismatches occurred on opposite ends of
+    # the 19 bp target-window"
+    if len(mismatchPosList)<2:
+        h = 1.0
+    else:
+        dists = []
+        for left, right in zip(mismatchPosList[:-1], mismatchPosList[1:]):
+            dists.append(right-left)
+        minDist = min(dists)
+        h = minDist / 18.0
+    score *= h
+
+    return score
+
+def seqToVec(seq, offsets={"A":0,"C":1,"G":2,"T":3}):
+    """ convert a 20bp sequence to a 4*20 0/1 vector 
+    >>> seqToVec("AAAAATTTTTGGGGGCCCCC")
+    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]
+    """
+    assert(len(seq)==20)
+    #offsets = {"A":0,"C":1,"G":2,"T":3}
+    row = [0]*80
+    for pos, nucl in enumerate(seq):
+        if nucl in offsets:
+            nuclOffset = offsets.get(nucl)
+        else:
+            nuclOffset = offsets["other"]
+        row[pos*len(offsets)+nuclOffset] = 1
+    return row
+    
+def alnToVec(guideSeq, otSeq):
     """ encore the mismatches/matches between two 20bp sequences into a 3*20 vector 
     the three parts per basepair are:
     1 - is a G->T or A-C mismatch?
     2 - is a T-T, G-G, A-A match or C->T, T-G, C->A, G->A, A->G mismatch?
     3 - is a T->C or C->C match?
-    >>> seqToVec("AAGTCCGAGCAGAAGAAGAA","AAGTCCCAGCAGAGGAAGCA")
+    >>> alnToVec("AAGTCCGAGCAGAAGAAGAA","AAGTCCCAGCAGAGGAAGCA")
     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0]
     """
     indexPos = {
@@ -932,6 +1138,8 @@ chariScores = None
 
 def lookupChariScore(seq):
     " retrieve one chari score from chariScores.tab, return tuple (rawScore, relPercRank) "
+    if not len(seq)==23:
+        print seq
     assert(len(seq)==23)
     seq = seq.upper()
     global chariScores
@@ -956,10 +1164,13 @@ def calcEffScores(seqs):
         chariRaw, chariRank = lookupChariScore(seq[4:27])
         scores[seq]["chariRaw"] = chariRaw
         scores[seq]["chariRank"] = chariRank
+        scores[seq]["oof"]  = lookupOofScore(seq[4:27])
 
         guideSeq = seq[4:24]
+        assert(len(guideSeq)==20)
         scores[seq]["finalGc6"] = countFinalGc(guideSeq, 6)
         scores[seq]["finalGc2"] = countFinalGc(guideSeq, 2)
+        scores[seq]["finalGg"] = (guideSeq[-2:]=="GG")
     return scores
 
 def countFinalGc(seq, lastCount):
@@ -999,6 +1210,7 @@ blatServers = {
     "danRer10" : ("blat4c", "17863"),
     "dm3" : ("blat4d", "17791"),
     "ce6" : ("blat4d", "17841"),
+    "rn5" : ("blat4b", "17795"),
     "mm9" : ("blat4c", "17779")
 }
 
@@ -1093,12 +1305,16 @@ def extendSeqs(seqs, db, fiveExt, threeExt):
     return ret
 
 def addDoenchAndScs(fname):
-    " given tab file with extSeq column, yield (guide, modFreq, scoreType -> score) "
+    """ given tab file with extSeq column, yield (guide, modFreq, scoreType -> score) 
+    """
     seqs = []
     freqs = {}
     for row in iterTsvRows(fname):
         seqs.append(row.extSeq)
-        freqs[row.extSeq] = (row.guide, float(row.modFreq))
+        modFreq = row.modFreq
+        #if modFreq=="None":
+            #modFreq = row.geneAbund
+        freqs[row.extSeq] = (row.guide, float(modFreq))
     effScores = calcEffScores(seqs)
 
     #for row in iterTsvRows(fname):
@@ -1106,7 +1322,7 @@ def addDoenchAndScs(fname):
     return effScores, freqs
 
 def extend23Mers(seqs, db):
-    """ extend 23mers to 30mers for eff score calculations, seqs is a dict id -> seq 
+    """ extend 23mers to 34mers for eff score calculations, seqs is a dict id -> seq 
     return a dict seqId -> list of (seq, genomePositionString)
     """
     print "extending %d 23mer sequences on genome" % len(seqs)
@@ -1231,6 +1447,30 @@ def parseEffScores(datasetName, db=None):
     extFname = extendTabAddContext(inFname, db)
     scores, freqs = addDoenchAndScs(extFname)
     return scores, freqs
+
+def parseOofScores(fname):
+    " read the file out/oofScores.tab generated by calcOofScores.py and return a dict 23mer -> oofScore "
+    ret = {}
+    for row in iterTsvRows(fname):
+        ret[row.seq] = float(row.oofScore)
+    return ret
+
+oofScores = None
+
+def lookupOofScore(seq):
+    " given a 23mer, return its OOF score "
+    if not len(seq)==23:
+        print seq
+    assert(len(seq)==23)
+    global oofScores
+    if oofScores is None:
+        oofScores = parseOofScores("out/oofScores.tab")
+    score = oofScores.get(seq, None)
+    if score==None:
+        print "couldn't find OOF score for %s" % seq
+        score = None
+    return score
+    #return oofScores[seq]
 
 def parseBlatCache(fname):
     " return dict 23mer -> list of (34mer, genomePos) "

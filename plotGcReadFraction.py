@@ -137,7 +137,7 @@ def annotateOts():
         mmCount, diffLogo = countMmsAndLogo(guideSeq, otSeq)
 
         otGcCont = gcCont(otSeq)
-        guideGc = gcCont(guideSeq)
+        guideGc = gcCont(guideSeq[:20])
 
         gappedMm, guideGapSeqs, otGapSeqs, gapLogos = findGappedSeqs(guideSeq, otSeq)
         if gappedMm > mmCount:

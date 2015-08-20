@@ -1,19 +1,23 @@
 # compare guide specificity scores against ot counts
 # based on compareMitCrisporSpecScore.py
+# XX currently recalculating the MIT scores. Maybe use the originals (once the site is working again)
 from annotateOffs import *
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from os.path import isfile
 import pickle
+import numpy as np
 
 # save time-intensive scores between invocations 
 TMPFNAME = "/tmp/guideSpecScores.pickle"
 
 # size expansion factor for bubbles
 BUBBLEFAC = 200.0
+# expansion factor for very small bubbles
+SMALLFAC= 15.0
 
 def parseOtCounts(fname):
-    " return a tuple of two dicts strongOtCount, weakOtCounts each guideName -> int "
+    " return a tuple of three dicts strongOtCount, weakOtCounts, offtargetSum, each is : guideName -> float "
     strongOffs = defaultdict(int)
     weakOffs = defaultdict(int)
     otShareSum = defaultdict(float)
@@ -28,52 +32,88 @@ def parseOtCounts(fname):
         otShareSum[row.name]+=rf
     return strongOffs, weakOffs, otShareSum
 
-def makePlot(xVals, yVals, areas, markerChar):
-    weaks = plt.scatter(xVals, yVals, \
+def splitXyzVals(xVals, yVals, zVals, zCutoff):
+    """ split three lists into two sets of lists, depending on the yVal 
+    stupid hack, numpy array would be one line.
+    """
+    x1, y1, z1 = [], [], []
+    x2, y2, z2 = [], [], []
+    for x,y,z in zip(xVals, yVals, zVals):
+        if z <= zCutoff:
+            x2.append(x)
+            y2.append(y)
+            z2.append(z)
+        else:
+            x1.append(x)
+            y1.append(y)
+            z1.append(z)
+    return (x1, y1, np.array(z1)), (x2, y2, np.array(z2))
+            
+def makePlot(xVals, yVals, areas):
+
+    (highX, highY, highZ), (lowX, lowY, lowZ) = splitXyzVals(xVals, yVals, areas, 0.005)
+
+    #print lowX, lowY, lowZ, 200*lowZ
+    #edgecolor='none', \
+    plt.scatter(lowX, lowY, \
         alpha=.7, \
-        edgecolor='none', \
-        marker=markerChar, \
-        s=areas)
+        marker="x", \
+        edgecolor="black", \
+        s=BUBBLEFAC*lowZ*SMALLFAC)
 
-    #strongs = plt.scatter(xValsCrispor, yValsStrong, \
-        #alpha=.5, \
+    #print highX, highY, highZ
+    plt.scatter(highX, highY, \
+        alpha=.7, \
+        marker="o", \
+        s=BUBBLEFAC*highZ)
+    #plt.scatter(xVals, yVals, \
+        #alpha=.7, \
         #marker="o", \
-        #s=20)
-
-    #mitWeak = plt.scatter(xValsMit, yValsWeak, \
-        #alpha=.5, \
-        #marker="x", \
-        #s=areas)
+        #s=BUBBLEFAC*np.array(areas))
 
     plt.xticks(range(0, 101, 10))
     plt.xlim(0,100)
     plt.ylim(0,70)
 
+    # invisible markers, needed for legend
     legPlots = []
-    for frac in [0.001, 0.005, 0.01, 0.05, 0.10, 0.30, 0.5, 0.7, 0.9]:
+    for frac in [0.005, 0.01, 0.05, 0.10, 0.30, 0.5, 0.7, 0.9]:
+        fracChar = "o"
+        size = BUBBLEFAC*frac
+        if frac == 0.005:
+            fracChar = "x"
+            size *= SMALLFAC
+        #if frac == 0.005:
+            #fracChar = "x"
+            #size *= 10
+
         legPlots.append(
-            plt.scatter([],[], s=BUBBLEFAC*frac, edgecolors='none', marker=markerChar),
+            plt.scatter([],[], s=size, edgecolors='blue', marker=fracChar, lw=1),
 
         )
 
-    #plt.gca().add_artist(leg1)
+    # add legend
+    leg1 = plt.legend(legPlots, ["0.1%", "0.5%", "1%", "5%", "10%", "30%", "50%", "70%", "90%"],
+           #loc='upper right',
+           bbox_to_anchor=(1.15, 1), loc=2, borderaxespad=0., \
+           ncol=1,
+           fontsize=10, scatterpoints=1, title="Sum of\noff-target\nmodification\nfrequencies")
+    plt.setp(leg1.get_title(),fontsize='small')
+    return leg1
 
-    #plt.legend([weaks, mitWeak],
-           ##["all off-targets", "off-targets <1%"],
-           #["CRISPOR", "crispr.mit.org"],
-           #scatterpoints=1,
-           #loc='upper left',
-           #ncol=1,
-           #fontsize=12)
-    #plt.ylim(0,40)
-    return legPlots
-
-def parseSpecScores(fname):
-    " parse a file with (seq,specScore) and return a list 0,10 with the counts for each bin "
+def parseSpecScores(fname, cacheFname):
+    """ parse a file with (seq,specScore) and return a list 0,10 with the percentage for each bin
+    As this is somewhat slow, cache the result in a temp file.
+    """
     print "parsing", fname
+    if isfile(cacheFname):
+        print "reading score histogram from temp file %s" % cacheFname
+        return pickle.load(open(cacheFname))
     hist = [0] * 10
     totalCount = 0
     for line in open(fname):
+        if "None" in line:
+            continue
         score = int(line.rstrip("\n").split()[1])
         if score==100:
             score=99
@@ -83,14 +123,19 @@ def parseSpecScores(fname):
 
     xVals = range(0, 100, 10)
     yVals = [100*(float(x)/totalCount) for x in hist]
+    #print fname, xVals, yVals
+    pickle.dump((xVals, yVals), open(cacheFname, "w"))
     return xVals, yVals
 
 def main():
     maxMismatches = 4
+    # get guide seq off-target counts and names
     guideValidOts, guideSeqs = parseOfftargets("out/annotFiltOfftargets.tsv", maxMismatches, False, None)
+    # get sum of off-target frequencies
     strongOtCounts, weakOtCounts, otShareSum = parseOtCounts("out/annotFiltOfftargets.tsv")
 
-    histXVals, histYVals = parseSpecScores("wholeGenome/specScores.tab")
+    histXVals, histYVals = parseSpecScores("wholeGenome/specScores.tab", "/tmp/crisporCache.pickle")
+    mitHistXVals, mitHistYVals = parseSpecScores("seleniumMit/seqScores.txt", "/tmp/mitCache.pickle")
 
     if not isfile(TMPFNAME):
         crisporOffs = parseCrispor("crisporOfftargets", guideSeqs, maxMismatches)
@@ -117,7 +162,7 @@ def main():
             crisporScore = calcMitGuideScore_offs(guideSeq, crisporOffs[guideSeq])
             scoreCache[guideName] = (mitScore, crisporScore)
 
-        weakOtCount = weakOtCounts[guideName]
+        weakOtCount   = weakOtCounts[guideName]
         strongOtCount = strongOtCounts[guideName]
         row = [guideName, crisporScore, mitScore, weakOtCount, strongOtCount]
 
@@ -125,7 +170,7 @@ def main():
         xValsMit.append(mitScore)
         yValsWeak.append(weakOtCount)
         yValsStrong.append(strongOtCount)
-        areas.append(200.0*otShareSum[guideName])
+        areas.append(otShareSum[guideName])
 
         row = [str(x) for x in row]
         rows.append(row)
@@ -139,43 +184,48 @@ def main():
 
     pickle.dump(scoreCache, open(TMPFNAME, "w"))
 
-    axy1 = plt.figure(figsize=(10,5))
+    plt.figure(figsize=(5,5))
 
-    axy1 = plt.subplot(121)
-    makePlot(xValsMit, yValsWeak, areas, "o")
-    plt.xlabel("MIT Specificity Score")
-    plt.ylabel("Number of off-targets")
-
-    ax2 = plt.subplot(122, sharey=axy1)
-    plt.setp( ax2.get_yticklabels(), visible=False)
-    #plt.ylim(0,60)
+    #axy1 = plt.subplot(121)
+    leg1 = makePlot(xValsMit, yValsWeak, areas)
+    xlab = plt.xlabel("MIT Specificity Score")
     plt.ylabel("Off-targets found per guide sequence", color="blue")
 
-    legPlots = makePlot(xValsCrispor, yValsWeak, areas, "o")
+    ax1b = plt.twinx()
+    ax1b.bar(mitHistXVals, mitHistYVals, 10, edgecolor='white', color="lightblue" , alpha=0.4, lw=1)
+    ax1b.set_ylim(0,25)
+    ylab = ax1b.set_ylabel('Frequency of specificity in exons (unique 20mers)', color="grey")
 
-    # add legend
-    leg1 = plt.legend(legPlots, ["0.1%", "0.5%", "1%", "5%", "10%", "30%", "50%", "70%", "90%"],
-           #loc='upper right',
-           bbox_to_anchor=(1.15, 1), loc=2, borderaxespad=0., \
-           ncol=1,
-           fontsize=10, scatterpoints=1, title="Sum of\noff-target\nmodification\nfrequencies")
-    plt.setp(leg1.get_title(),fontsize='small')
-    xlab = plt.xlabel("Specificity Score")
+    #ax2 = plt.subplot(122, sharey=axy1)
+    #plt.setp( ax2.get_yticklabels(), visible=False)
+    #plt.ylim(0,60)
+
+    plotFname = "out/specScoreVsOtCount-MIT.pdf"
+    plt.savefig(plotFname, format = 'pdf', bbox_extra_artists=(leg1,xlab,ylab), bbox_inches='tight')
+    plt.savefig(plotFname.replace(".pdf", ".png"), bbox_extra_artists=(leg1,), bbox_inches='tight')
+    print "wrote plot to %s, added .png" % plotFname
+    plt.close()
+
+    # make the CRISPOR plot
+    plt.figure(figsize=(5,5))
+    leg1 = makePlot(xValsCrispor, yValsWeak, areas)
+
+    xlab = plt.xlabel("CRISPOR Specificity Score")
+    plt.ylabel("Off-targets found per guide sequence", color="blue")
     
-    # add 2nd y axis
-    ax2 = plt.twinx()
-    ax2.set_ylabel('Frequency of specificity in exons (unique 20mers)', color="grey")
+    # add 2nd y axis and plot histogram
+    ax2b = plt.twinx()
+    ylab = ax2b.set_ylabel('Frequency of specificity in exons (unique 20mers)', color="grey")
+    ax2b.set_ylim(0,20)
+    ax2b.bar(histXVals, histYVals, 10, edgecolor='white', color="lightblue" , alpha=0.4, lw=1)
 
-
-    plt.bar(histXVals, histYVals, 10, edgecolor='white', color="lightblue" , alpha=0.5, lw=1)
-
-    plt.tight_layout()
+    #plt.tight_layout()
 
     #plt.tight_layout()
     # plt.subplots_adjust(hspace=0) # doesn't work
 
-    plotFname = "out/specScoreVsOtCount.pdf"
-    plt.savefig(plotFname, format = 'pdf', bbox_extra_artists=(leg1,xlab), bbox_inches='tight')
+    plotFname = "out/specScoreVsOtCount-CRISPOR.pdf"
+    plt.savefig(plotFname, format = 'pdf', bbox_extra_artists=(leg1,xlab,ylab), bbox_inches='tight')
     plt.savefig(plotFname.replace(".pdf", ".png"), bbox_extra_artists=(leg1,), bbox_inches='tight')
     print "wrote plot to %s, added .png" % plotFname
     plt.close()

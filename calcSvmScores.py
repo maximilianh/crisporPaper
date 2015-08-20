@@ -6,11 +6,15 @@ import os
 
 seqs = set()
 
+oldScoreDict = readDict("svmScores.tab")
+
 for fname in glob.glob("effData/*.tab"):
     print "reading %s" % fname
     for row in iterTsvRows(fname):
-        seqs.add(row.seq[:20].upper())
+        if row.seq[:20] not in oldScoreDict:
+            seqs.add(row.seq[:20].upper())
 
 scoreDict = calcSvmEffScores(seqs)
-writeDict(scoreDict, "svmScores.tab")
+oldScoreDict.update(scoreDict)
+writeDict(oldScoreDict, "svmScores.tab")
 logging.info("Wrote %d svm scores to %s" % (len(seqs), fname))

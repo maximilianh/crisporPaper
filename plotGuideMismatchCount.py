@@ -1,6 +1,7 @@
-#plot for each guide: spec score with and without taking into account off-targets with >4 mismatches
+#plot for each guide: spec score change when changing mismatch count from 3 to 4 or 5
 
 import matplotlib
+import pickle
 matplotlib.use('Agg')
 matplotlib.rcParams['pdf.fonttype'] = 42
 import matplotlib.pyplot as plt
@@ -8,18 +9,16 @@ import numpy
 import matplotlib.backends.backend_pdf as pltBack
 from collections import defaultdict
 
-from annotateOffs import *
+# save time-intensive score calculations between invocations 
+TMPFNAME = "/tmp/specScoresByMms.pickle"
 
-ignoreStudies = ["Hsu", "Cho"] # ignore studies that only validated known off-targets
+from annotateOffs import *
 
 def parseSeqs(inFname):
     " parse guide seqs and their off-targets and index by name and mismatch count "
     # read guide sequences
     guideSeqs = {}
     for row in iterTsvRows(inFname):
-        study = row.name.split("_")[0]
-        if study in ignoreStudies:
-            continue
         if row.type=="on-target":
             guideSeqs[row.name] = row.seq
 
@@ -89,53 +88,79 @@ def writeRows(rows, outFname):
     print "wrote %s" % outFname
 
 def main():
-    inFname = "offtargetsFilt.tsv"
+    inFname = "out/offtargetsFilt.tsv"
     guideSeqs, guideMms = parseSeqs(inFname)
 
-    rows = makeDataRows(guideSeqs, guideMms)
-
     outFname = 'out/specScoreComp.tsv'
+    rows = makeDataRows(guideSeqs, guideMms)
     writeRows(rows, outFname)
 
-    annotateXys = {} # dict with (x,y) -> name to annotate with labels
+    scoreCache = defaultdict(dict)
+    if isfile(TMPFNAME):
+        scoreCache = pickle.load(open(TMPFNAME))
+    else:
+        crisporOffs = parseCrispor("crisporOfftargets", guideSeqs, 9999)
+
+    annotateXys = []
     figs = []
-    for mmMax, column, color, marker in [(3, 1, "red", "o"), (4, 2, "black", "+"), (5, 3, "green", "^")]:
-        xVals = []
-        yVals = []
-        for row in rows:
-            # skip guides that don't have any data with 5 or 6 mismatches
-            if row[0]=='Tsai_VEGFA_site2':
-                annotateXys[(row[column], row[4])]=row[0]
-            if row[-1]==row[-2]==0:
-                continue
-            xVals.append(row[column]) # first spec score
-            yVals.append(row[4]) # 6MM spec score
+    notShown = []
 
-        fig = plt.scatter(xVals, yVals, \
-            alpha=.5, \
-            color=color, \
-            marker=marker, \
-            s=30)
-        figs.append(fig)
+    doneSeqs = set()
+    for guideName, guideSeq in guideSeqs.iteritems():
+        if guideSeq in doneSeqs:
+            continue
+        doneSeqs.add(guideSeq)
+        xVals, yVals = [], []
+        for maxMm in range(5,3, -1):
+            if maxMm in scoreCache[guideName]:
+                specScore = scoreCache[guideName][maxMm]
+            else:
+                specScore = calcMitGuideScore_offs(guideSeq, crisporOffs[guideSeq], maxMm, 0.1, 1.0)
+                scoreCache[guideName][maxMm] = specScore
+            xVals.append(maxMm)
+            yVals.append(specScore)
+            if maxMm==4:
+                annotateXys.append( (maxMm, specScore, guideName) )
+        fig = plt.plot(xVals, yVals, \
+            color="k", \
+            marker="None")
+        print guideName, xVals, yVals
 
-    plt.legend(figs,
-           ["mismatches <= 3", "mismatches <= 4", "mismatches <= 5"],
-           scatterpoints=1,
-           loc='upper left',
-           ncol=1,
-           fontsize=10)
+    pickle.dump(scoreCache, open(TMPFNAME, "w"))
 
-    for xy, guideName in annotateXys.iteritems():
-       x, y = xy
-       if float(x)>65 or y>25:
+    print "Not shown, because no 5MM or 6MM values: %s" % (", ".join(set(notShown)))
+        #fig = plt.scatter(xVals, yVals, \
+            #alpha=.5, \
+            #color=color, \
+            #marker=marker, \
+            #s=30)
+
+    #plt.legend(figs,
+           #["mismatches <= 3", "mismatches <= 4", "mismatches <= 5"],
+           #scatterpoints=1,
+           #loc='upper left',
+           #ncol=1,
+           #fontsize=10)
+    #plt.ylim(0, 100)
+    labels = ["3 mismatches", "4 mismatches", "5 mismatches", "6 mismatches"]
+    xTicks = [3, 4, 5, 6]
+    plt.xticks(xTicks, list(labels), rotation='vertical')
+    plt.yticks(range(0,100,10))
+
+    for x, y, guideName in annotateXys:
            plt.annotate(
-              guideName, fontsize=9, rotation=30, ha="right", rotation_mode="anchor",
-              xy = (x, y), xytext = (0,0), alpha=.5,
+              guideName, fontsize=9, ha="right", rotation_mode="anchor",
+              xy = (x, y), xytext = (0,0), 
               textcoords = 'offset points', va = 'bottom')
 
-    plt.xlabel("Spec. Score using off-targets with 3, 4 or 5 mismatches")
-    plt.ylabel("Spec. Score using all off-targets (<= 6 mismatches)")
+    #plt.xlabel("Spec. Score using off-targets with 3, 4 or 5 mismatches")
+    plt.ylabel("Specificity Score")
     outfname = "out/specScoreMMComp"
+    plt.xlim(3.5, 5.1)
+    plt.ylim(0, 97)
+    fig = matplotlib.pyplot.gcf()
+    fig.set_size_inches(5.5, 10)
+    plt.tight_layout()
     plt.savefig(outfname+".pdf", format = 'pdf')
     plt.savefig(outfname+".png")
     print "wrote %s.pdf / .png" % outfname

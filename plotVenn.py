@@ -12,6 +12,15 @@ from matplotlib_venn import venn3, venn2
 import matplotlib.pyplot as plt
 import numpy as np
 
+def readMitPredOts(fnames):
+    " return a set with all MIT predicted off-targets "
+    ret = set()
+    for fname in fnames:
+        for line in open(fname):
+            fs = line.split(", ")
+            ret.add(fs[4])
+    return ret
+
 def parseAllOffs(fname, skipCell=False):
     " return a dict targetSeq -> study -> list of (off-target sequence, modFreq)"
     nameToTarget = defaultdict(dict)
@@ -27,13 +36,44 @@ def parseAllOffs(fname, skipCell=False):
         study = row.name.split("_")[0]
         if skipCell:
             study = study.split("/")[0]
-        seqs[targetSeq].setdefault(study, []).append( (row.seq, float(row.score)) )
-    return seqs
+        modFreq = float(row.score)
+        #if modFreq<0.001:
+            #continue
+        seqs[targetSeq].setdefault(study, []).append( (row.seq, modFreq) ) 
+
+    # special filtering: make two indexes into data to facilitate removal
+    studyCounts = defaultdict(int) # offtarget -> number of studies
+    maxFreq = defaultdict(float) # offtarget -> highest mod freq
+    for targetSeq, studyFreqs in seqs.iteritems():
+        for study, seqFreqs in studyFreqs.iteritems():
+            for seq, freq in seqFreqs:
+                studyCounts[seq] +=1
+                maxFreq[seq] = max(maxFreq[seq], freq)
+
+    # special filtering: remove offtarget < 0.001 when found only by one study
+    # and with a freq < 0.001
+    remOts = set()
+    for otSeq, count in studyCounts.iteritems():
+        if count != 1:
+            continue
+        if maxFreq[otSeq] < 0.001:
+            remOts.add(otSeq)
+
+    filtSeqs = defaultdict(dict)
+    for targetSeq, studyFreqs in seqs.iteritems():
+        for study, seqFreqs in studyFreqs.iteritems():
+            for seq, freq in seqFreqs:
+                if seq in remOts:
+                    continue
+                filtSeqs[targetSeq].setdefault(study, []).append((seq, freq))
+
+    return filtSeqs
 
 def createTsv(overlapGuides):
     # create the TSV files
     outTsvFnames = []
     seqs = parseAllOffs("offtargets.tsv")
+    mitSeqs = readMitPredOts(["mitOfftargets/Hsu_EMX1.3.csv", "mitOfftargets/Frock_VEGFA.csv"])
 
     for guideSeq, guideName in overlapGuides:
         # prep for tsv file: convert to dict otSeq -> study -> freq
@@ -50,16 +90,21 @@ def createTsv(overlapGuides):
         ofh = open("out/venn-%s.tsv" % guideName, "w")
         headers = ["guide", "off-target", "mismatch", "diffLocs", "offtScore"]
         headers.extend(studies)
+        headers.append("mitPredicted")
         ofh.write("\t".join(headers)+"\n")
 
         rows = []
         for otSeq, studyFreqs in otFreqs.iteritems():
             mmCount, diffLogo = countMms(guideSeq, otSeq)
             otScore = calcHitScore(guideSeq, otSeq)
+            isMitPred = (otSeq in mitSeqs)
             row = [guideSeq, otSeq, mmCount, diffLogo, otScore]
             for study in studies:
                 freq = studyFreqs.get(study, "notFound")
+                if study=="Hsu" and freq=="notFound":
+                    freq = "notTested"
                 row.append(str(freq))
+            row.append(str(isMitPred))
             rows.append(row)
 
         rows.sort(key=operator.itemgetter(2))
@@ -81,6 +126,13 @@ def main():
         ("GGGTGGGGGGAGTTTGCTCCTGG", "VEGFA")
         ]
 
+    studyDescs = {
+        "Tsai" : "GuideSeq\n(Tsai et al, HEK293)",
+        "Frock" : "Translocation\nsequencing\n(HTGTS,\nFrock et al, HEK293T)",
+        "Hsu" : "Targeted sequencing\n(Hsu et al,\nHEK293FT)",
+        "Kim" : "DigenomeSeq\n(Kim et al, HAP1)",
+    }
+
     for plotRow, (guideSeq, guideName) in enumerate(overlapGuides):
         studySeqs = seqs[guideSeq]
 
@@ -89,6 +141,7 @@ def main():
         labels = []
         sets = []
         for studyName, seqInfo in studySeqs.items():
+            studyName = studyDescs[studyName]
             labels.append(studyName)
             studyOts = set()
             for otSeq, otFreq in seqInfo:
@@ -99,7 +152,7 @@ def main():
         if len(sets)!=3:
             assert(False)
 
-        venn3(subsets=sets, set_labels=labels, ax=ax)
+        venn3(subsets=sets, set_labels=labels, ax=ax, labelSize="small")
         ax.set_title(guideName)
 
     fig.tight_layout()
