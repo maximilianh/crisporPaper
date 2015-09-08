@@ -1,7 +1,10 @@
 # annotate guideseq offtargets with all possible scores we have
 import glob, copy, sys, math, operator, random, re, collections, tempfile, subprocess, logging, os, types
+import pickle
 from collections import defaultdict, Counter
 from os.path import basename, join, splitext, isfile, dirname
+
+import svmlight # install with 'sudo pip install svmlight'
 
 logging.basicConfig(loglevel=logging.INFO)
 
@@ -11,6 +14,7 @@ import time, gzip, platform
 # assignment of activity datasets to genomes
 datasetToGenome = {
     "xu2015Train": "hg19",
+    "eschstruth" : "danRer10",
     "doench2014-Hs": "hg19",
     "doench2014-Mm": "mm9",
     "doench2014-CD33Exon2": "hg19",
@@ -19,10 +23,19 @@ datasetToGenome = {
     "xu2015": "hg19",
     "ren2015": "dm3",
     "farboud2015": "ce6",
-    "schoenig": "rn5",
+    "schoenig": "hg19",
+    "schoenigHs": "hg19",
+    "schoenigMm": "mm9",
+    "schoenigRn": "rn5",
+    "concordet2-Hs": "hg19",
+    "concordet2-Mm": "mm9",
+    "concordet2-Rn": "rn5",
+    "concordet2": "hg19",
     "chari2015Train": "hg19"
 }
 
+# support scoring types when reading .scores.tab files
+scoreTypes = ["wang", "doench", "ssc", "chariRank", "chariRaw", "crisprScan", "fusi"]
 
 def iterTsvRows(inFile, encoding=None, fieldSep="\t", isGzip=False, skipLines=None, \
         makeHeadersUnique=False, commentPrefix=None, headers=None):
@@ -172,6 +185,18 @@ def calcHitScore(string1,string2, startPos=0):
     score = score1 * score2 * score3 * 100
     return score
 
+def parseScores(fname):
+    " parse a key-val tab-sep file, val is float, return as list (key, val) "
+    data = []
+    for line in open (fname):
+        fs = line.strip().split()
+        seq, score = fs
+        seq = seq.strip('"')
+        score = score.strip('"')
+        score = float(score)
+        data.append((seq, float(score)))
+    return data
+
 def parseSvmOut(fname):
     " parse R SVM output file, return as dict seq -> score "
     data = {}
@@ -195,6 +220,10 @@ def writeDict(d, fname):
 
 def readDictList(fname, isFloat=False):
     " read tab-sep file into a defaultdict(list) "
+    if not isfile(fname):
+        logging.warn("%s does not exist. Returning empty dict" % fname)
+        return {}
+
     logging.info("Reading %s" %fname)
     data = defaultdict(list)
     for line in open(fname):
@@ -215,6 +244,10 @@ def readDictList(fname, isFloat=False):
 
 def readDict(fname, isFloat=False):
     " read dict from a tab sep file "
+    if not isfile(fname):
+        logging.warn("%s does not exist. Returning empty dict" % fname)
+        return {}
+
     logging.info("Reading %s" %fname)
     data = {}
     for line in open(fname):
@@ -944,6 +977,7 @@ def calcHsuSuppScore(guideSeq, otSeq, baseDir="./"):
     >>> calcHsuSuppScore("TGTCCGAGCAGAAGAAGAA","AGTCCGAGCAGAAGAAGAA")
     0.007929899123452079
     >>> calcHsuSuppScore("AGTCCGAGCAGAAGAAGAA","AGTCAGAACAGAAGAACAA")
+    3.69683024017458e-08
     >>> countMmsAndLogo("AGTCCGAGCAGAAGAAGAA","AGTCAGAACAGAAGAACAA")
     (3, '....*..*........*..')
     """
@@ -993,24 +1027,53 @@ def calcHsuSuppScore(guideSeq, otSeq, baseDir="./"):
 
     return score
 
+def seqsToVecs(seqs, startPos=0, endPos=None):
+    vecs = []
+    for s in seqs:
+        ensPos = len(s)
+        vecs.append(seqToVec(s[startPos:endPos]))
+    return vecs
+
 def seqToVec(seq, offsets={"A":0,"C":1,"G":2,"T":3}):
     """ convert a 20bp sequence to a 4*20 0/1 vector 
     >>> seqToVec("AAAAATTTTTGGGGGCCCCC")
     [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0]
     """
-    assert(len(seq)==20)
-    #offsets = {"A":0,"C":1,"G":2,"T":3}
-    row = [0]*80
+    #assert(len(seq)==20)
+    row = [0]*len(seq)*4
     for pos, nucl in enumerate(seq):
+        nucl = nucl.upper()
         if nucl in offsets:
             nuclOffset = offsets.get(nucl)
         else:
+            print seq
             nuclOffset = offsets["other"]
         row[pos*len(offsets)+nuclOffset] = 1
     return row
     
+def vecToSeqDicts(coefs):
+    " convert a list of 80 floats to 20 dictionaries with A/C/T/G -> float "
+    freqs = []
+    for i in range(0,20):
+        charFreqs = {}
+        for nucl, x in zip("ACGT", range(0,4)):
+            freq = coefs[i*4+x]
+            if freq==0.0:
+                continue
+            charFreqs[nucl] = freq
+        freqs.append(charFreqs)
+    return freqs
+
+def printCoef(coefs):
+    " print the 80 floats from a seqtovec operation in a nicer way "
+    for i in range(0,20):
+        row = []
+        for nucl, x in zip("ACGT", range(0,4)):
+            row.append("%s=%f" % (nucl, coefs[i*4+x]))
+        print " ".join(row)
+
 def alnToVec(guideSeq, otSeq):
-    """ encore the mismatches/matches between two 20bp sequences into a 3*20 vector 
+    """ encode the mismatches/matches between two 20bp sequences into a 3*20 vector 
     the three parts per basepair are:
     1 - is a G->T or A-C mismatch?
     2 - is a T-T, G-G, A-A match or C->T, T-G, C->A, G->A, A->G mismatch?
@@ -1044,6 +1107,34 @@ def alnToVec(guideSeq, otSeq):
         if guideSeq[i]!=otSeq[i]:
             vec[i] = 1.0
     return vec
+
+def seqsToChariVecs(seqs):
+    """ partially copied from generateSVMFile.FASTA.py
+    >>> seqsToChariVecs(["CTTCTTCAAGGTAACTGCAGAGG"])
+    [(0, [(11.0, 0.0), (12.0, 0.0), (13.0, 1.0), (14.0, 0.0), (21.0, 0.0), (22.0, 1.0), (23.0, 0.0), (24.0, 0.0), (31.0, 0.0), (32.0, 1.0), (33.0, 0.0), (34.0, 0.0), (41.0, 0.0), (42.0, 0.0), (43.0, 1.0), (44.0, 0.0), (51.0, 0.0), (52.0, 1.0), (53.0, 0.0), (54.0, 0.0), (61.0, 0.0), (62.0, 1.0), (63.0, 0.0), (64.0, 0.0), (71.0, 0.0), (72.0, 0.0), (73.0, 1.0), (74.0, 0.0), (81.0, 0.0), (82.0, 0.0), (83.0, 0.0), (84.0, 1.0), (91.0, 0.0), (92.0, 0.0), (93.0, 0.0), (94.0, 1.0), (101.0, 1.0), (102.0, 0.0), (103.0, 0.0), (104.0, 0.0), (111.0, 1.0), (112.0, 0.0), (113.0, 0.0), (114.0, 0.0), (121.0, 0.0), (122.0, 1.0), (123.0, 0.0), (124.0, 0.0), (131.0, 0.0), (132.0, 0.0), (133.0, 0.0), (134.0, 1.0), (141.0, 0.0), (142.0, 0.0), (143.0, 0.0), (144.0, 1.0), (151.0, 0.0), (152.0, 0.0), (153.0, 1.0), (154.0, 0.0), (161.0, 0.0), (162.0, 1.0), (163.0, 0.0), (164.0, 0.0), (171.0, 1.0), (172.0, 0.0), (173.0, 0.0), (174.0, 0.0), (181.0, 0.0), (182.0, 0.0), (183.0, 1.0), (184.0, 0.0), (191.0, 0.0), (192.0, 0.0), (193.0, 0.0), (194.0, 1.0), (201.0, 1.0), (202.0, 0.0), (203.0, 0.0), (204.0, 0.0), (211.0, 0.0), (212.0, 0.0), (213.0, 0.0), (214.0, 1.0)])]
+    """
+    vecs = []
+    for seq in seqs:
+        vec = []
+        # end index
+        for pos in range(0, 21):
+            for nuclIdx, char in enumerate("GTCA"):
+                vec.append( (float("%d%d" % (pos+1, nuclIdx+1)), float(seq[pos]==char)) )
+        vecs.append( (0, vec) )
+    return vecs
+
+def calcChariScoresDirect(seqs, baseDir="."):
+    """ calc chari scores without an external process using the svmlight module 
+    >>> calcChariScoresDirect(["CTTCTTCAAGGTAACTGCAGAGG"])
+    [0.5494762125374468]
+    """
+    chariDir = baseDir+"/sgRNA.Scorer.1.0/"
+    modelFname = chariDir+'293T.HiSeq.SP.Nuclease.100.SVM.Model.txt'
+    vecs = seqsToChariVecs(seqs)
+
+    model = svmlight.read_model(modelFname)
+    predictions = svmlight.classify(model, vecs)
+    return predictions
 
 def calcChariScores(seqs, baseDir="."):
     " return dict with chari 2015 scores, returns seq -> (rawScore, relRank), seqs is a list of 23mers "
@@ -1147,8 +1238,30 @@ def lookupChariScore(seq):
         chariScores = readDict("chariScores.tab", isFloat=True)
     return chariScores[seq]
 
-def calcEffScores(seqs):
+crisprScanScores = None
+
+def lookupCrisprScan(seq):
+    " retrieve one crisprScan score from crisprScanScores.tab, return score "
+    assert(len(seq)==23)
+    seq = seq.upper()
+    global crisprScanScores
+    if crisprScanScores==None:
+        crisprScanScores = readDict("crisprScanScores.tab", isFloat=True)
+    score = crisprScanScores.get(seq)
+    if score is None:
+        print "No crisprScan score for seq %s. Returning 0" % seq
+        return 0
+    else:
+        return float(score)
+
+myClf = None
+
+def calcEffScores(seqs, skipOof=False):
     " given list of 34mers, return dict with seq -> scoreName -> score "
+    global myClf
+    if myClf is None:
+        myClf = pickle.load(open("out/svm.pickle"))
+        
     sscSeqs = [s[-30:] for s in seqs]
     sscScores = calcSscScores(sscSeqs)
 
@@ -1164,13 +1277,17 @@ def calcEffScores(seqs):
         chariRaw, chariRank = lookupChariScore(seq[4:27])
         scores[seq]["chariRaw"] = chariRaw
         scores[seq]["chariRank"] = chariRank
-        scores[seq]["oof"]  = lookupOofScore(seq[4:27])
+        if not skipOof:
+            scores[seq]["oof"]  = lookupOofScore(seq[4:27])
+        #scores[seq]["crisprScan"]  = lookupCrisprScan(seq[4:27])
 
         guideSeq = seq[4:24]
         assert(len(guideSeq)==20)
         scores[seq]["finalGc6"] = countFinalGc(guideSeq, 6)
         scores[seq]["finalGc2"] = countFinalGc(guideSeq, 2)
         scores[seq]["finalGg"] = (guideSeq[-2:]=="GG")
+        vec = seqToVec(guideSeq[10:])
+        scores[seq]["myScore"] = myClf.predict(vec)[0]
     return scores
 
 def countFinalGc(seq, lastCount):
@@ -1258,7 +1375,7 @@ def extendSeqs(seqs, db, fiveExt, threeExt):
     matches = defaultdict(list) # seqId -> list of (chrom, start, end, strand)
     for line in open("/tmp/temp.bed"):
         chrom, start, end, name, score, strand = line.split()[:6]
-        if "_hap" in chrom or "random" in chrom:
+        if "_hap" in chrom or "random" in chrom or "chrUn" in chrom:
             continue
         ##print int(end)-int(start)
         if (int(end)-int(start))!=seqLen:
@@ -1439,13 +1556,44 @@ def extendTabAddContext(fname, db):
     print "Wrote result to %s" % ofh.name
     return newFname
 
+def parseSeqScores(datasetName):
+    inFname = join("effData/"+datasetName+".ext.tab")
+    seqs, scores = [], []
+    for row in iterTsvRows(inFname):
+        seqs.append(row.seq)
+        scores.append(float(row.modFreq))
+    return seqs, scores
+
 def parseEffScores(datasetName, db=None):
     """ parse an efficiency dataset from the effData/ directory and return 
     a dict seq -> scoreType -> score and dict seq -> (guideName, modFreq)
+    >>> parseEffScores("xu2015")
     """
-    inFname = join("effData/"+datasetName+".tab")
-    extFname = extendTabAddContext(inFname, db)
-    scores, freqs = addDoenchAndScs(extFname)
+    inFname = join("effData/"+datasetName+".scores.tab")
+    print "reading %s" % inFname
+    #extFname = extendTabAddContext(inFname, db)
+    #scores, freqs = addDoenchAndScs(extFname)
+
+    scores = {}
+    freqs  = {}
+    for row in iterTsvRows(inFname):
+        seq = row.seq
+        scores[seq] = {}
+        for st in scoreTypes:
+            scores[seq][st] = float(row._asdict()[st])
+
+        # inverse sign -> higher = better
+        scores[seq]["wang"] = scores[seq]["wang"]
+
+        guideSeq = row.seq[:20]
+        scores[seq]["finalGc6"] = int(countFinalGc(guideSeq, 6)>=4)
+        scores[seq]["finalGg"] = int(guideSeq[-2:]=="GG")
+        #scores[seq]["finalGc2"] = countFinalGc(guideSeq, 2)
+
+        freqs[seq] = (row.guide, float(row.modFreq))
+        
+    assert(len(scores)!=0)
+    assert(len(scores)==len(freqs))
     return scores, freqs
 
 def parseOofScores(fname):
@@ -1478,6 +1626,25 @@ def parseBlatCache(fname):
     for row in iterTsvRows(fname):
         data[row.seq].append((row.extSeq, row.position))
     return data
+
+def parseAllGuides():
+    mask = join("effData/"+"*.tab")
+    seqs, scores = [], []
+    doneSeqs = set()
+    for fname in glob.glob(mask):
+        for row in iterTsvRows(fname):
+            if row.seq in doneSeqs:
+                continue
+            seqs.append(row.seq)
+            doneSeqs.add(row.seq)
+            scores.append(float(row.modFreq))
+    return seqs, scores
+
+def writeRow(ofh, row):
+    " write list to file as tab-sep row "
+    row = [str(x) for x in row]
+    ofh.write("\t".join(row))
+    ofh.write("\n")
 
 if __name__=="__main__":
     import doctest

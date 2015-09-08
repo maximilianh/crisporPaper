@@ -6,7 +6,7 @@ from itertools import combinations
 from scipy.stats import linregress, pearsonr, spearmanr
 from os.path import basename
 
-scoreTypes = ["doench", "ssc", "svm", "chariRaw", "finalGc6", "oof"]
+scoreTypes = ["doench", "ssc", "svm", "chariRaw", "finalGc6", "oof", "myScore"]
 
 def parseScores(inDir, datasets):
     " index all scores in inDir and return as dataset -> scoreType -> list of scores "
@@ -70,6 +70,8 @@ def main():
         if None in scores1 or None in scores2:
             print "misssing scores, skipping %s-%s" % (score1, score2)
             continue
+        #print scores1
+        #print scores2
         pearR, pVal = pearsonr(scores1, scores2)
         spearR, pVal = spearmanr(scores1, scores2)
 

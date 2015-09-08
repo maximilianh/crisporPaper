@@ -11,13 +11,14 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import metrics
 from sklearn.mixture import *
+from sklearn.linear_model import LinearRegression
 
 def parseTab(fname):
     xList = []
     yList = []
     seqs = []
     for row in iterTsvRows(open(fname)):
-        seq = row.seq[:20]
+        seq = row.seq[17:20]
         seqs.append(seq)
         score = float(row.modFreq)
         #vec = seqToVec(seq, offsets={"G":0, "other":1})
@@ -39,14 +40,6 @@ def splitData(xList, yList, ratio):
             xTest.append(xList[i])
             yTest.append(yList[i])
     return xTrain, yTrain, xTest, yTest
-
-def printCoef(coefs):
-    " print the coefficients of a regression model in a more readable way "
-    for i in range(0,20):
-        row = []
-        for nucl, x in zip("ACGT", range(0,4)):
-            row.append("%s=%f" % (nucl, coef[i*4+x]))
-        print " ".join(row)
 
 def parseMany(mask, names, maxSize=None):
     " parse many tab files and return as merged lists "
@@ -76,6 +69,12 @@ models = [ \
     ("SVM", svm.SVR(kernel="poly")), \
     ("RF-regression", RandomForestRegressor()), \
     ("Ridge-Regression", linear_model.Ridge(alpha=0.1)) \
+    ]
+models = [ \
+    #("DPGMM", DPGMM(n_components=5, covariance_type='diag', alpha=100, n_iter=100)), \
+    #("DPGMM", DPGMM(n_components=5, covariance_type='diag', alpha=100, n_iter=100)), \
+    #("GMM", GMM(n_components=10, covariance_type="tied", init_params='wc', n_iter=20)),
+    ("lasso", linear_model.Lasso(alpha=0.01)) \
     ]
 
 #xList, yList = parseTab("effData/varshney2015.tab")
@@ -111,6 +110,8 @@ for dataset in datasets:
         #metaRegr = linear_model.Ridge (alpha = .05)
         #metaRegr = linear_model.RANSACRegressor(linear_model.LinearRegression())
         #metaRegr = RandomForestRegressor()
+        #yTrain = useRanks(yTrain, doQuart=True)
+        # data is already quartiled, see parseMany()
         metaRegr.fit(xTrain, yTrain)
 
     xTrain, yTrain, xTest, yTest = splitData(xList, yList, 0.2)
@@ -181,7 +182,7 @@ for dataset in datasets:
 #pearR, pearP = pearsonr(testPreds, yTest)
 #print "1/2 of input: Pearson R %0.3f (P %0.3f)" % (pearR, pearP)
 
-testSets = ["mixTest", "doench2014-Hs", "xu2015Train", "chari2015Train", "varshney2015", "gagnon2014", "schoenig", "museumT7", "farboud2015", "ren2015"]
+testSets = ["mixTest", "doench2014-Hs", "xu2015Train", "chari2015Train", "varshney2015", "gagnon2014", "schoenig", "museumT7", "farboud2015", "ren2015", "xu2015"]
 
 print
 print "application to full datasets"

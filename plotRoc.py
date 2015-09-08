@@ -16,10 +16,8 @@ maxMismatches = 4
 # that are not GG/GA/AG
 validPams = ["GG", "GA", "AG"]
 
-# !!!
 # only look at alternative PAMs, can be used to determine best cutoff for the alternative PAMs
-# supplemental data??
-onlyAlt = False
+onlyAlt = True
 
 if len(sys.argv)>1:
     altPamCutoff = float(sys.argv[1])
@@ -109,7 +107,8 @@ def main():
     crisporScores = collapseDicts(crisporPredOts)
     validOffts = collapseDicts(guideValidOts)
     plots, labels = plotRoc(dataName, crisporScores, validOffts, crisporScores, colors, styles, plots, labels)
-    plt.annotate('TPR = 0.96:\nofft. score = 0.1', xy=(0.588221664414, 0.9640), xytext=(0.4, .84),
+    if not onlyAlt:
+        plt.annotate('TPR = 0.96:\nofft. score = 0.1', xy=(0.588221664414, 0.9640), xytext=(0.4, .84),
                 arrowprops=dict(facecolor='black', arrowstyle="->"))
     #plt.annotate('offt. score = ?', xy=(0.8, 1.0), xytext=(0.7, .84),
                 #arrowprops=dict(facecolor='black', arrowstyle="->"))

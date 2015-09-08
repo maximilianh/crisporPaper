@@ -15,8 +15,13 @@ for fname in glob.glob("effData/*.tab"):
             print row
         assert(len(row.seq)==23)
         seq = row.seq.upper()
-        if seq not in oldScores:
+        if seq not in oldScores and "N" not in seq:
             seqs.add(seq)
+
+print "%d sequences to do" % len(seqs)
+
+for s in seqs:
+    assert(len(s)==23)
 
 scoreDict = calcChariScores(seqs)
 scoreDict.update(oldScores)
