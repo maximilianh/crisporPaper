@@ -1,5 +1,5 @@
 import pickle, os, sys
-sys.path.append("..")
+sys.path.append("../..")
 from annotateOffs import parseFasta, revComp
 
 scores = pickle.load(open("scores.pickle"))
@@ -25,8 +25,12 @@ ofh.close()
 
 # get their seqs
 
+ofh1 = open("../xu2015AAVS1.tab", "w")
+ofh2 = open("../xu2015FOX-AR.tab", "w")
+
 headers = ["guide", "modFreq", "seq"]
-print "\t".join(headers)
+ofh1.write("\t".join(headers)+"\n")
+ofh2.write("\t".join(headers)+"\n")
 
 cmd = "twoBitToFa /gbdb/hg19/hg19.2bit -bed=tempExt.bed tempExt.fa"
 os.system(cmd)
@@ -34,9 +38,11 @@ seqs = parseFasta(open("tempExt.fa"))
 
 for seqId, seq in seqs.iteritems():
     score = scores[seqId]
-    #if strands[seqId]=="-":
-        #print seq
-        #seq = revComp(seq)
-        #print "after", seq
-    row = [seqId, score, seq]
-    print "\t".join(row)
+    row = [seqId, score, seq.upper()]
+    if seqId.startswith("AAVS"):
+        ofh = ofh1
+    else:
+        ofh = ofh2
+    ofh.write( "\t".join(row))
+    ofh.write( "\n")
+print "wrote output to %s and %s" % (ofh1.name, ofh2.name)

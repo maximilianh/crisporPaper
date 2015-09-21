@@ -1,1 +1,2 @@
-less Housden2015_tableS1.txt | grep -v sgRNA | cut -f1,5 | awk '{OFS="\t"; print "housden"NR, $1, $2} '| cat headers.txt - > ../housden2015.guides.tab
+#less Housden2015_tableS1.txt | grep -v sgRNA | cut -f1,5 | awk '{OFS="\t"; print "housden"NR, $1, $2} '| cat headers.txt - > ../housden2015.guides.tab
+less HousdenS1CorrectedVersion.txt | grep -v Input | cut -f2,11 | awk '{OFS="\t"; print "housden"NR, $1, $2} '| cat headers.txt - > ../housden2015.guides.tab 

@@ -1,0 +1,43 @@
+#SNAP25
+snap25_3	GTGCTCTCCTCCAATGTTGTTGG	0.578	3			 = used as positive control in some experiments				
+snap25_5	CTCTTGTCCAACAACATTGGAGG	0.230	2							
+snap25_6	TCTCTCTTGTCCAACAACATTGG	0.08	1							
+#Oxytocine lower loxP 	sequence of gRNA	lacZ score								
+pTAlReport1w_PX330gRNA1	GGCAAGAGTTTGTACTTCGTGGG	1.105979295	3							
+pTAlReport1w_PX330gRNA2	GGATATCTGGCCTGCCTTACTGG	0.641368132	2							
+pTAlReport1w_PX330gRNA6	AGTACAAACTCTTGCCAGTAAGG	0.070708894	1							
+#direkter Vergleich						
+#Oxytocine upper loxP 				lower loxP (mit gRNA1)		0.235530766				
+pTALRep_10w_gRNA1	TGTCCGGATGGGATAGGTATAGG	0.084642322	1	upper loxP (mit gRNA3)		0.58134779				
+pTALRep_10w_gRNA2	TGGTTGTTCTGTGTCCGGATGGG	0.020366393	1							
+pTALRep_10w_gRNA3	GCTGGCTTCGATCCCCTAGGAGG	0.573628865	3							
+#OXTR Cre										
+OTR_#2	TGGCCCACCGGGCCAGCCGCAGG	0.016618642	1							
+OTR_#3	AACCCTGCGGCTGGCCCGGTGGG	0.141070715	1							
+OTR_#4	ACTCCAGTCTTCCCCCGTGGTGG	0.969429279	3							
+#pos. Control		0.606								
+#Hamid 										
+Guide_1a	CGGCCGCCAGATCTTTTCCGAGG	0.562298618	2							
+Guide_7b	CTCGGAAAAGATCTGGCGGCCGG	0.509710559	2							
+Guide_10	CAGTCCTTCTGAGGGGACGCTGG	0.788251064	3							
+#pos. Control		0.9								
+#CaV1.3 (mouse)										
+CaV1.3gRNA1-1	GGCCATCGCTGTGGACAATTTGG	0.064	1							
+CaV1.3gRNA1-2	GGCCAAGAAGACATTCAGCAGG	0.502	2							
+CaV1.3gRNA2	GTCCAGCCATATGTCCTGATGGG	0.505	2							
+#pos. Contril (SNAP25)		0.86								
+#SPARC (human)										
+SPARC_gRNA Aor4	AAAGAGAGAATCCGGTACTGTGG	1.092	3							
+SPARC_gRNA3	CTTTGCAGAGGATATCGACAAGG	0.623	2							
+SPARC_gRNA5	ATCCACTCCTTCCACAGTACCGG	0.471	2							
+#pos.Ktr.		0.810								
+#Miriam (rat)										
+CNR1_274	CAAAAGGCCACAACGGCCTTGG	0.2526	3		in vivo gut					
+CNR1_275	TATTGCGATAGTCCACATCAGG	0.3847	Na							
+CNR1_273	AGGATCGTCACCAGGCCCAAGG	0.1920	Na							
+#schwer zu vergleichen da anderes Expressionsplasmid										
+#direkter Vergleich verschiedener gRNAs in einer Messung (immer die besten):					in vivo correlation (scale 1-100 = percentage of indel positve offspring)					
+#Innsbruck Oligo 1-2 	0.594567604				40					
+#OXT Cre gRNA #4 	1.577796113				63					
+#Hamid gRNA a 	0.688507318				95					
+#pos. contr. 	0.837047732									

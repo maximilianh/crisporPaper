@@ -1,0 +1,79 @@
+#Table S1 Summary of current and published editing frequencies using 3Õ GG 
+#and non-GG guides 
+#
+#Our Guide Efficiencies 
+#GG Guides sgRNA Mutagenesis 
+#Target Gene Guide RNA Protospacer Sequence (PAM) Bases 19,20 Rate (%) Publication 
+#
+#lir-2 3' GGCTGATTTTCGCAGTTCGG (GGG) GG 72 GG This study 
+Y62E10A.17 3' GG CGCACCGATGCTCTCCGAGG (AGG) GG 57 This study 
+sex-1 3' GG (1) GGATGAGAATCTGACAAAGG (TGG) GG 54 This study 
+cpsf-2 3' GG CACTTTCAATTTGATAATGG (AGG) GG 52 This study 
+sex-1 3' GG (2) AACATTTCCACAACGAGAGG (AGG) GG 51 This study 
+fox-1 3' GG (1) ATATGAGGGGAGTGAGGCGG (TGG) GG 29 This study 
+fox-1 3' GG (3) ATTACAGTGAAGTACAGCGG (AGG) GG 21 This study 
+fox-1 3' GG (2) AATATCGTTTACCAAAACGG (GGG) GG 13 This study 
+xol-1 3' GG AGCGATTTCTGGCGATTGGG (GGG) GG 10 This study 
+#
+#median: 
+#
+#51 
+#
+#Non-GG Guides 
+#
+sex-1 3' GG-shift (1) AACGGATGAGAATCTGACAA (AGG) AA 21 This study 
+fox-1 3' GG-shift (1) CATTTGATATGAGGGGAGTG (AGG) TG 20 This study 
+Y62E10A.17 3' GG-shift ATACGCACCGATGCTCTCCG (AGG) CG 14 This study 
+sex-1 3' GG-shift (2) TGGAACATTTCCACAACGAG (AGG) AG 8 This study 
+lir-2 3' GG-shift CTCGGCTGATTTTCGCAGTT (CGG) TT 1 This study 
+cpsf-2 3' GG-shift AAACACTTTCAATTTGATAA (TGG) AA 0 This study 
+fox-1 3' GG-shift (2) TTGAATATCGTTTACCAAAA (CGG) AA 0 This study 
+fox-1 3' GG-shift (3) ACAATTACAGTGAAGTACAG (CGG) AG 0 This study 
+xol-1 3' GG-shift TCTAGCGATTTCTGGCGATT (GGG) TT 0 This study 
+cpsf-2 3' non-GG (1) GTGGTTGGGATGAGCGATTC (GGG) TC 0 This study 
+lir-2 3' non-GG (1) AATCAGCCGAGATGTAAGTT (TGG) TT 0 This study 
+lir-2 3' non-GG (2) TTGACTCGTTCCATTTCAGC (TGG) GC 0 This study 
+sex-1 3' non-GG (1) AAACCTGCCTCCTCTCGTTG (TGG) TG 0 This study 
+#
+#
+C35E7.6 GGGCACCATACCGAGTGATG (GGG) TG 100 Kim et al. 2014 
+pie-1 a GGCTCAGATTGACGAGGCGC (CGG) GC 24 Kim et al. 2014 
+avr-14 (2) GATTGGAGAGTTAGACCACG (TGG) CG 20 Kim et al. 2014 
+pie-1 b GCTGAGAGAAGAATCCATCG (GGG) CG 15 Kim et al. 2014 
+unc-119 GAATTTTCTGAAATTAAAGA (CGG) GA 3.7 Friedland et al. 2013 
+dpy-13 GGACATTGACACTAAAATCA (AGG) CA 0.5 Friedland et al. 2013 
+#Protospacer Sequence (PAM) 
+#Mutagenesis 
+#Rate (%) Publication 
+#sgRNA 
+#Bases 19,20 
+#median: 0 
+klp-12 GATCCACAAGTTACAATTGG (TGG) GG 80.3 Friedland et al. 2013 
+vet-2  GTTGGATCATAGGATACCGG (TGG) GG 38 Kim et al. 2014 
+lon-2 GGGAAACTATACCCTCACTG (TGG) TG 30 Kim et al. 2014 
+lin-5 GGAGCTTACTGAGACTCTTC (GGG) TC 20.8 Waaijers et al. 2013 
+Y61A9LA.1 GGATGGATGTGTAGTCAATT (CGG) TT 18.1 Friedland et al. 2013 
+avr-14 (1) GAATATTGAAAGACTATGAT (TGG) AT 10 Kim et al. 2014 
+unc-4 (1) GTTATCGTCATCCGGTGACG (TGG) CG 10 Kim et al. 2014 
+dpy-11 GCAAGGATCTTCAAAAAGCA (TGG) CA 10 Waaijers et al. 2013 
+pie-1 c GGACAAAGAGAGGGGGTGAG (TGG) AG 7.5 Kim et al. 2014 
+unc-22 (2) GAACCCGTTGCCGAATACAC (AGG) AC 5 Kim et al. 2014 
+pie-1 d GTTGAGTGCAGCCATTTGCT (CGG) CT 5 Kim et al. 2014 
+unc-119 GTTATAGCCTGTTCGGTTAC (CGG) AC 4.9 Waaijers et al. 2013 
+rol-1 GGAGGTTGACTCCAATACTA (AGG) TA 1.4 Waaijers et al. 2013 
+dpy-11 (2) GCAAGGATCTTCAAAAAGCA (CGG) CA 0.4 Kim et al. 2014 
+ben-1 (5) GGGAGAAAGTGATTTGCAGT (TGG) GT 0 Kim et al. 2014 
+ben-1 (3) GGATATCACTTCCCAGAACT (TGG) CT 0 Kim et al. 2014 
+bli-2 (2) GATGGACGGGATGGTAGAGA (TGG) GA 0 Kim et al. 2014 
+bli-2 (1) GGATTTGCTGCTACTGAATC (CGG) TC 0 Kim et al. 2014 
+dpy-5 (2) GTCGGATTCGGCGCTGCATG (CGG) TG 0 Kim et al. 2014 
+dpy-5 (3) GGTTTCCTGGAGCTCCGGCT (GGG) CT 0 Kim et al. 2014 
+dpy-11 (4) GATGCTTGTAGTCTGGAACT (GGG) CT 0 Kim et al. 2014 
+unc-22 (9) GCCTTTGCTTCGATTTTCTT (TGG) TT 0 Kim et al. 2014 
+unc-32 (1) GATAGGAAGCATCAGATTGA (AGG) GA 0 Kim et al. 2014 
+unc-32 (2) GTTGCTGAACTGGGAGAGCT (CGG) CT 0 Kim et al. 2014 
+#EOF
+#median: 4.3 
+#Published Guide Efficiencies 
+#
+#

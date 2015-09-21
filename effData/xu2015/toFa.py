@@ -8,7 +8,7 @@ for line in open("origData/Supplemental_Table_3.txt"):
     name = "AAVS1"+"-"+fs[0]
     seq = fs[4]
     print ">%s\n%s" % (name, seq)
-    score = fs[-1].replace("<2.0","2.0")
+    score = fs[-1].replace("<2.0","1.0")
     scores[name] = score
 
 for line in open("origData/Supplemental_Table_4.txt"):

@@ -1,4 +1,4 @@
-# run all guides from specScores.rnd100.tab through the MIT website
+# run all guides from the input file through the MIT website
 
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -13,6 +13,7 @@ for line in open(inFname):
     seqs.append(line.split()[0])
 seqs = set(seqs)
 
+# don't resubmit anything that we already have
 doneSeqs = set()
 for line in open("jobIds.txt"):
     doneSeqs.add(line.split()[0])
@@ -28,7 +29,12 @@ email = "maximilianh@gmail.com"
 
 ofh = open("jobIds.txt", "a")
 
-for seq in todoSeqs:
+for i, seq in enumerate(todoSeqs):
+    if seq=="AAAGAGGAAGCTGTTTGTCAAGG":
+        continue
+    if seq=="GAGGCGGCCAGTGTAAGCGGAGG":
+        continue
+    print i, len(todoSeqs), seq
     driver.get("http://crispr.mit.edu")
 
     nameBox = driver.find_element_by_id("search-name")
@@ -47,5 +53,5 @@ for seq in todoSeqs:
     ofh.flush()
     time.sleep(3)
 
-#driver.quit()
+driver.quit()
 

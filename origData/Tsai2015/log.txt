@@ -4,3 +4,9 @@ less nbt.3117-S2.txt | gawk '(substr($10,1,20)!=substr($9,1,20))' | gawk 'BEGIN 
 # make table with site -> offtarget count
 cat nbt.3117-S2.filter.txt | cut -f1 | sort | grep Cells -v | uniq -c | sort -nr | tr -s ' ' | sed 's/ //' | tr ' ' '\t' | gawk '{print $2,$1}' | sort  > otCounts.tab
  python convTsai.py  > tsai.tab
+
+# identifying sequences with typos in table, only the last two ones have to be fixed
+# as the first few ones are from a GC rich-sequence
+less nbt.3117-S2.filter.txt  | grep -v Chromo | less | cut -f2- | awk '{OFS="\t"; $5="0"; print}' > valid.bed
+twoBitToFa /gbdb/hg19/hg19.2bit -bed=valid.bed stdout -noMask > valid.fa
+cat valid.fa | faToTab stdin stdout | awk '(toupper($1)!=toupper($2)) { print toupper($1), toupper($2)}'

@@ -1,0 +1,2 @@
+ mv ~/Downloads/Output-0c4bb0fa-962b-43c6-8b8c-d7d7205ec494.txt ./
+ less *.txt | cut -f2,9 | grep Input -v > ../scores1.tab

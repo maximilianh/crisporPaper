@@ -1,0 +1,2 @@
+less ren2014-S9.txt | grep -v ^# | tr -s ' ' | cut -f2,8  | cut -d\% -f1| cat headers.txt - | grep -v '^ *$' > ren2014.tab
+less ren2014-S9.txt | grep -v ^# | tr -s ' ' | cut -f2,8  | cut -d\% -f1| awk '{OFS="\t"; print $1, $2/100}' | cat headers.txt - | grep -v '^ *$' > ren2014.tab

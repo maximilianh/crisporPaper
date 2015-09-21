@@ -1,22 +1,30 @@
 from collections import defaultdict
 import sys
 
-# use validated data from supp table 5, adding sequences from other suppl files
+# use validated freq data from supp table 5, adding sequences from other suppl files
 
 #cellType = "Hap1"
 
 #.ofh = open("convert.tab", "w")
 ofh = sys.stdout
 
-def conv(guideName, cellType):
-    # mock file: get map name -> seq
-    seqs = {}
-    for line in open(guideName.lower()+"Mock.txt"):
-        fs = line.rstrip("\n").strip().split()
-        seq = fs[-1]
-        name = fs[0]
-        seqs[name] = seq
+seqs = {}
 
+def readSeqs():
+    global seqs
+    for guideName in ["HBB", "VEGFA"]:
+        # mock file: get map name -> seq
+        for line in open(guideName.lower()+"Mock.txt"):
+            fs = line.rstrip("\n").strip().split()
+            seq = fs[-1]
+            name = fs[0]
+            #if name.lower()=="on-target":
+            name = guideName+"_"+name
+            #print name
+            assert(name not in seqs)
+            seqs[name] = seq
+
+def conv(guideName, cellType):
     # validated file: get map name -> frequency
     sumFreqs = 0.0
     rows = []
@@ -28,8 +36,8 @@ def conv(guideName, cellType):
         if "On-target" in name:
             seqType = "on-target"
         sumFreqs+= freq
-        #row = ["Kim"+cellType+"_"+guideName, seqs[name], freq, seqType]
-        row = ["Kim"+"_"+guideName, seqs[name], freq, seqType]
+        row = ["Kim/"+cellType+"_"+guideName, seqs[guideName+"_"+name], freq, seqType]
+        #row = ["Kim"+"_"+guideName, seqs[name], freq, seqType]
         rows.append(row)
 
     for row in rows:
@@ -40,8 +48,9 @@ def conv(guideName, cellType):
         ofh.write( "\t".join(row))
         ofh.write("\n")
 
-#conv("VEGFA", "Hap1")
-#conv("HBB", "Hap1")
+readSeqs()
+conv("VEGFA", "Hap1")
+conv("HBB", "Hap1")
 conv("VEGFA", "K562")
 conv("HBB", "K562")
 #print ('wrote convert.tab')

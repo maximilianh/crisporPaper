@@ -1,0 +1,4 @@
+transformed manually to ../museum*.tab
+
+NOTES: had to change GGCCCCACTGTGGGGTGGAGAGG to GGCCCCACTGTGGGGTGGAGGGG to get a match in hg19
+and GTTAATGTGGCTCTGGTTCTAGG -> GTTAATGTGGCTCTGGTTCTGGG
