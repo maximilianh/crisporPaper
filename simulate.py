@@ -9,52 +9,63 @@ def filterGuides(guideData, scoreType, minScore):
     " remove all guides with a given score < minScore "
     filtGuides = []
     for guide in guideData:
-        guideName, modFreq, scores = guide
+        modFreq, scores = guide
         if scores[scoreType] > minScore:
             filtGuides.append(guide)
     return filtGuides
 
 def getScoreRanges(inDir, percentile):
     " for each score, get its range, return as dict scoreName -> (min, max) "
-    scoreTypes = ["doench", "ssc", "svm", "chariRaw", "finalGc6"]
+    scoreTypes = ["doench", "ssc", "wangOrig", "chariRaw", "finalGc6"]
 
     ranges = {}
     for st in scoreTypes:
         ranges[st] = [0.0,0.0]
 
-    # first calc all seq scores
-    seqKoEffs = {}
-    for fname in glob.glob(inDir+"/*.ext.tab"):
-        for row in iterTsvRows(fname):
-            freq = float(row.modFreq)
-            seqKoEffs[row.extSeq] = freq
-
-    seqScores = calcEffScores(seqKoEffs)
-
-    # now split them into fname -> list of (seq, koEff, scores)
+    # calc all seq scores
+    # split them into fname -> list of (koEff, scores)
     fileGuideData = {}
     fileMinReqFreqs = {}
-    for fname in glob.glob(inDir+"/*.ext.tab"):
+    for fname in glob.glob(inDir+"/*.scores.tab"):
         guideData = []
         koEffs = []
+        dataName = basename(fname).split(".")[0]
+
         for row in iterTsvRows(fname):
-            seq = row.extSeq
-            scores = seqScores[seq]
-            koEff = seqKoEffs[seq]
-            guideData.append( (seq, koEff, scores) )
+            freq = float(row.modFreq)
+            rowDict = row._asdict()
+
+            koEff = float(row.modFreq)
             koEffs.append(koEff)
 
-            #for scoreType in scoreTypes:
-                #score = scores[scoreType]
-                #ranges[scoreType][0] = min(ranges[scoreType][0], score)
-                #ranges[scoreType][1] = max(ranges[scoreType][1], score)
+            scores = {}
+            for scoreName in row._fields[7:]:
+                scores[scoreName] = rowDict[scoreName]
+            guideData.append( (koEff, scores) )
 
-        dataName = basename(fname).split(".")[0]
-        koEffs.sort(reverse=True)
+        koEffs.sort()
         fileMinReqFreqs[dataName] = koEffs[int(len(koEffs)*percentile)]
         fileGuideData[dataName] = guideData
-    #return ranges, guideData
     return fileGuideData, fileMinReqFreqs
+
+    #fileGuideData = {}
+    #fileMinReqFreqs = {}
+    #for fname in glob.glob(inDir+"/*.ext.tab"):
+        #guideData = []
+        #koEffs = []
+        #for row in iterTsvRows(fname):
+            #seq = row.extSeq
+            #scores = seqScores[seq]
+            #koEff = seqKoEffs[seq]
+            #guideData.append( (seq, koEff, scores) )
+            #koEffs.append(koEff)
+
+        #dataName = basename(fname).split(".")[0]
+        #koEffs.sort(reverse=True)
+        #fileMinReqFreqs[dataName] = koEffs[int(len(koEffs)*percentile)]
+        #fileGuideData[dataName] = guideData
+    #return ranges, guideData
+    #return fileGuideData, fileMinReqFreqs
 
 def runSimulation(inDir, percentile):
     #print "Using %s" % fname
@@ -71,7 +82,7 @@ def runSimulation(inDir, percentile):
     print
 
     # print realRanges
-    scoreRanges = {'doench': [0.0, 1.0], 'svm': [0.0, 1.0], 'chariRaw': [-3.0, +3.0], 'ssc': [-1.5, 1.5], 'finalGc6': [0.0, 6.0]}
+    scoreRanges = {'doench': [0.0, 1.0], 'wangOrig': [0.0, 1.0], 'chariRaw': [-3.0, +3.0], 'ssc': [-1.5, 1.5], 'finalGc6': [0.0, 6.0], 'fusi' : (0.0,1.0)}
 
     for dataset, guideData in guideDatas.iteritems():
         reqMinFreq = reqMinFreqs[dataset]
@@ -83,7 +94,7 @@ def runSimulation(inDir, percentile):
         for sampleSize in [1, 2, 3]:
             print "sample size: %d" % sampleSize
             
-            for scoreType in ["svm", "doench", "ssc", "chariRaw", "finalGc6"]:
+            for scoreType in ["wangOrig", "doench", "ssc", "chariRaw", "fusi", "finalGc6"]:
                 print "score: ", scoreType
                 minScore, maxScore = scoreRanges[scoreType]
                 for minScoreFloat in np.linspace(minScore, maxScore, 20):
@@ -100,7 +111,7 @@ def runSimulation(inDir, percentile):
                         #print selGuides
                         foundOk = 0
                         for g in selGuides:
-                            if g[1] > reqMinFreq:
+                            if g[0] > reqMinFreq:
                                 foundOk += 1
                         if foundOk > 0:
                             okCount += 1
@@ -116,6 +127,6 @@ def main():
     #runSimulation("out/xu2015-compDoenchSsc.tsv", 80)
     #runSimulation("out/varshney2015-compDoenchSsc.tsv", 20)
     # out/xu2015Train-compEffData.tsv
-    runSimulation("effData", 0.2)
+    runSimulation("effData", 0.8)
 
 main()

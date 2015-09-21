@@ -89,8 +89,7 @@ def main():
     # ",".join(diffCounts)]
     headers = ["mismatches", "MIT_Predicted_NGG", "CRISPOR_Predicted_NGG", "CasOff_Predicted_NGG",
         "Crispor_notFoundMIT", "CasOff_notFoundMIT", "MIT_notFoundCrispor", "CasOff_notFoundCrispor",
-        "MIT_notFoundCrispor_example", "Crispor_notFoundMIT_example", "Crispor_notFoundCasOff_example",
-        "mismDistribution"]
+        "MIT_notFoundCrispor_example", "mismDistribution"]
     ofh.write("\t".join(headers)+"\n")
 
     for mm in range(minMm, maxMm+1):
@@ -129,7 +128,7 @@ def main():
                     diffCounts[i]+=1
         diffCounts = [str(x) for x in diffCounts]
 
-        row = [mm, len(mitOts), len(crispOts), len(casOffOts), len(crispNotMit), len(casOffNotMit), len(mitNotCrisp), len(casOffNotCrisp), mitMissSeq, crispMissSeqMit, casOffMissSeq, ",".join(diffCounts)]
+        row = [mm, len(mitOts), len(crispOts), len(casOffOts), len(crispNotMit), len(casOffNotMit), len(mitNotCrisp), len(casOffNotCrisp), mitMissSeq, ",".join(diffCounts)]
         row = [str(x) for x in row]
         ofh.write( "\t".join(row)+'\n')
 

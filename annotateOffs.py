@@ -13,6 +13,7 @@ import time, gzip, platform
 
 # assignment of activity datasets to genomes
 datasetToGenome = {
+    "housden2015": "dm3",
     "xu2015Train": "hg19",
     "eschstruth" : "danRer10",
     "doench2014-Hs": "hg19",
@@ -31,13 +32,17 @@ datasetToGenome = {
     "concordet2-Mm": "mm9",
     "concordet2-Rn": "rn5",
     "concordet2": "hg19",
+    "morenoMateos2015": "danRer7",
     "chari2015Train": "hg19"
 }
 
 # support scoring types when reading .scores.tab files
-scoreTypes = ["wang", "doench", "ssc", "chariRank", "chariRaw", "crisprScan", "fusi"]
+scoreTypes = ["wang", "wangOrig", "doench", "ssc", "chariRank", "chariRaw", "crisprScan", 'drsc', "fusi"]
 
-def iterTsvRows(inFile, encoding=None, fieldSep="\t", isGzip=False, skipLines=None, \
+def getScoreTypes():
+    return scoreTypes
+
+def iterTsvRows(inFile, fieldSep="\t", isGzip=False, skipLines=None, \
         makeHeadersUnique=False, commentPrefix=None, headers=None):
     """ 
         parses tab-sep file with headers as field names 
@@ -79,8 +84,6 @@ def iterTsvRows(inFile, encoding=None, fieldSep="\t", isGzip=False, skipLines=No
             continue
         line = line.rstrip("\n")
         fields = line.split(fieldSep)
-        if encoding!=None:
-            fields = [f.decode(encoding) for f in fields]
         #fields = [x.decode(encoding) for x in fields]
         try:
             rec = Record(*fields)
@@ -1256,7 +1259,7 @@ def lookupCrisprScan(seq):
 
 myClf = None
 
-def calcEffScores(seqs, skipOof=False):
+def calcEffScores(datasetName, seqs):
     " given list of 34mers, return dict with seq -> scoreName -> score "
     global myClf
     if myClf is None:
@@ -1284,10 +1287,10 @@ def calcEffScores(seqs, skipOof=False):
         guideSeq = seq[4:24]
         assert(len(guideSeq)==20)
         scores[seq]["finalGc6"] = countFinalGc(guideSeq, 6)
-        scores[seq]["finalGc2"] = countFinalGc(guideSeq, 2)
+        #scores[seq]["finalGc2"] = countFinalGc(guideSeq, 2)
         scores[seq]["finalGg"] = (guideSeq[-2:]=="GG")
         vec = seqToVec(guideSeq[10:])
-        scores[seq]["myScore"] = myClf.predict(vec)[0]
+        #scores[seq]["myScore"] = myClf.predict(vec)[0]
     return scores
 
 def countFinalGc(seq, lastCount):
@@ -1557,14 +1560,14 @@ def extendTabAddContext(fname, db):
     return newFname
 
 def parseSeqScores(datasetName):
-    inFname = join("effData/"+datasetName+".ext.tab")
+    inFname = join("effData/"+datasetName+".scores.tab")
     seqs, scores = [], []
     for row in iterTsvRows(inFname):
         seqs.append(row.seq)
         scores.append(float(row.modFreq))
     return seqs, scores
 
-def parseEffScores(datasetName, db=None):
+def parseEffScores(datasetName):
     """ parse an efficiency dataset from the effData/ directory and return 
     a dict seq -> scoreType -> score and dict seq -> (guideName, modFreq)
     >>> parseEffScores("xu2015")
@@ -1582,15 +1585,18 @@ def parseEffScores(datasetName, db=None):
         for st in scoreTypes:
             scores[seq][st] = float(row._asdict()[st])
 
-        # inverse sign -> higher = better
         scores[seq]["wang"] = scores[seq]["wang"]
 
         guideSeq = row.seq[:20]
         scores[seq]["finalGc6"] = int(countFinalGc(guideSeq, 6)>=4)
         scores[seq]["finalGg"] = int(guideSeq[-2:]=="GG")
-        #scores[seq]["finalGc2"] = countFinalGc(guideSeq, 2)
 
-        freqs[seq] = (row.guide, float(row.modFreq))
+        freq = float(row.modFreq)
+        # inverse sign -> higher = better
+        if datasetName.startswith("xu2015Train"):
+            freq = -freq
+
+        freqs[seq] = (row.guide, freq)
         
     assert(len(scores)!=0)
     assert(len(scores)==len(freqs))

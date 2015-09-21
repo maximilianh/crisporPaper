@@ -154,5 +154,4 @@ def main():
     fractions = indexOfftargets(inRows, 0.001, targetSeqs)
     plotFractions(fractions, siteCountsByMismatch, 0.001, "out/mismatchFraction-min01Perc")
 
-
 main()

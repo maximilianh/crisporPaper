@@ -3,9 +3,12 @@
 
 from annotateOffs import *
 import glob
+import sys
+sys.path.insert(0, "../crispor")
 from crisporEffScores import *
 
 setBinDir("../crispor/bin")
+setCacheDir("./out/")
 
 for fname in glob.glob("effData/*.context.tab"):
     outFname = fname.replace(".context.tab", ".scores.tab")

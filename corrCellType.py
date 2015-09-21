@@ -27,17 +27,18 @@ def compareFreqs(fname1, fname2, ofh):
     f2 = parseTab(fname2)
     l1, l2 = toLists(f1, f2)
     pearR, pearP = pearsonr(l1, l2)
+    spearR, spearP = spearmanr(l1, l2)
     #print "%s %s: pearson R %0.3f (p %0.3f)" % (basename(fname1), basename(fname2), pearR, pearP)
     fname1= fname1.replace("Train", "-")
     fname2= fname2.replace("Train", "-")
     study = basename(fname1).split(".")[0].split("-")[0]
     cell1 = basename(fname1).split(".")[0].split("-")[-1]
     cell2 = basename(fname2).split(".")[0].split("-")[-1]
-    row = [study, cell1, cell2, "%0.3f" % pearR]
+    row = [study, cell1, cell2, "%0.3f" % pearR, "%0.3f" % spearR]
     ofh.write("\t".join(row)+"\n")
 
 ofh = open("out/corrCellType.tsv", "w")
-headers = ["study", "cellType1", "cellType2", "pearsonR"]
+headers = ["study", "cellType1", "cellType2", "pearsonR", "spearmanR"]
 ofh.write("\t".join(headers)+"\n")
 
 compareFreqs("effData/xu2015TrainHl60.ext.tab", "effData/xu2015TrainKbm7.ext.tab", ofh)

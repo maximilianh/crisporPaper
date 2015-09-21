@@ -103,6 +103,6 @@ def main():
     filtAnnotFname = "out/annotFiltOfftargets.tsv"
 
     filterOfftargets(inFname, filtFname)
-    annotateOfftargets(filtFname, annotFname)
+    annotateOfftargets(filtFname, filtAnnotFname)
 
 main()

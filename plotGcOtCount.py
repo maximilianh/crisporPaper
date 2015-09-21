@@ -8,7 +8,7 @@ import numpy
 import matplotlib.backends.backend_pdf as pltBack
 import operator
 from matplotlib import gridspec
-
+import string
 from annotateOffs import *
 
 from collections import defaultdict
@@ -45,7 +45,7 @@ for row in iterTsvRows("origData/Ran2015/convertNoSeq.tab"):
     if row.type==("on-target"):
         ontargetFreqs[row.name] = freq
         continue
-    print row.name, freq
+    #print row.name, freq
     offtargetFreqs[row.name] += freq
 
 print "ontarget", ontargetFreqs["Ran_EMX1-sg2"]
@@ -67,8 +67,8 @@ print "missing from plot: %s" % (allGuides - set(plotData))
 print "total number of guides used: %d" % len(plotData)
 print
 rows = gcCounts.items()
-for name, gcCount in sorted(rows, key=operator.itemgetter(1)):
-    print name, gcCount, guideSeqs[name]
+#for name, gcCount in sorted(rows, key=operator.itemgetter(1)):
+    #print name, gcCount, guideSeqs[name]
 
 studyX = defaultdict(list)
 studyY = defaultdict(list)
@@ -82,8 +82,8 @@ for name in plotData:
     studyY[study].append(yVal)
     studyGuides[study].append(name)
 
-colors  = ["green", "blue", "black", "blue", "red", "grey", "orange", "black"]
-markers = ["o", "s", "+", ">", "<", "^", ".", "o"]
+colors  = ["green", "blue", "green", "blue", "red", "grey", "orange", "blue"]
+markers = ["o", "s", "+", ">", "<", "o", ".", "o"]
 figs = []
 i = 0
 studyNames = []
@@ -93,13 +93,17 @@ ax = plt.subplot(gs[0])
 ax2 = plt.subplot(gs[1])
 #f,(ax,ax2) = plt.subplots(2,1,sharex=True)
 
-for study, xVals in studyX.iteritems():
+studies = studyX.keys()
+studies.sort()
+
+for study in studies:
+    xVals = studyX[study]
     yVals = studyY[study]
     guideNames = studyGuides[study]
     #zVals = studyZ[study]
     for a in [ax, ax2]:
         studyFig = a.scatter(xVals, yVals, \
-            alpha=.5, \
+            alpha=0.9, \
             marker=markers[i], \
             s=30, \
             color=colors[i])
@@ -110,22 +114,23 @@ for study, xVals in studyX.iteritems():
     for x, y, guideName in zip(xVals, yVals, guideNames):
            # arrowprops = dict(arrowstyle = '->', connectionstyle = 'arc3,rad=0')
            # bbox = dict(boxstyle = 'round,pad=0.5', fc = 'yellow', alpha = 0.5))
-           if float(x)>=0.75 or y > 6:
+           guideName = string.split(guideName, "_", maxsplit=1)[1]
+           if float(x)>=0.75 or y > 2:
                for a in [ax, ax2]:
                    a.annotate(
                       guideName, fontsize=9, rotation=0, ha="right", rotation_mode="anchor",
-                      xy = (x, y), xytext = (0,0), alpha=.5,
+                      xy = (x, y), xytext = (-7,0), alpha=1.0,
                       textcoords = 'offset points', va = 'bottom')
 
 plt.legend(figs,
        studyNames,
        scatterpoints=1,
        loc='upper left',
-       ncol=2,
+       ncol=1,
        fontsize=10)
 
 ax.set_ylim(20,55) # outliers only
-ax2.set_ylim(0,10) # most of the data
+ax2.set_ylim(-.5,10) # most of the data
 
 # from http://matplotlib.org/examples/pylab_examples/broken_axis.html
 ax.spines['bottom'].set_visible(False)

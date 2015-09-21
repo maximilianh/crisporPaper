@@ -6,31 +6,33 @@ from itertools import combinations
 from scipy.stats import linregress, pearsonr, spearmanr
 from os.path import basename
 
-scoreTypes = ["doench", "ssc", "svm", "chariRaw", "finalGc6", "oof", "myScore"]
+scoreTypes = ["doench", "ssc", "wangOrig", "chariRaw", "finalGc6", "crisprScan", "fusi"]
 
 def parseScores(inDir, datasets):
     " index all scores in inDir and return as dataset -> scoreType -> list of scores "
     # first get all seqs and calc all seq scores
     print "parsing file in %s" % inDir
-    seqKoEffs = {}
+    allScores = {}
     for dataset in datasets:
-        fname = "effData/%s.ext.tab" % dataset
+        #fname = "effData/%s.scores.tab" % dataset
         #for fname in glob.glob(inDir+"/*.ext.tab"):
             #dataset = basename(fname).split(".")[0]
         #if dataset not in datasets:
             #continue
-        if "doench2014-Mm" in fname:
-            continue # lots of duplicates in this dataset
-        for row in iterTsvRows(fname):
-            freq = float(row.modFreq)
-            seqKoEffs[row.extSeq.upper()] = freq
+        #if "doench2014-Mm" in fname:
+            #continue # lots of duplicates in this dataset
+        #for row in iterTsvRows(fname):
+            #freq = float(row.modFreq)
+            #seqKoEffs[row.extSeq.upper()] = freq
+        dataScores, freqs = parseEffScores(dataset)
+        allScores.update(dataScores)
 
-    seqScores = calcEffScores(seqKoEffs)
+    #seqScores = calcEffScores(seqKoEffs)
 
     # now split them into scoreType -> list of scores
     guideData = defaultdict(list)
-    scoreTypes = seqScores.values()[0]
-    for seq, scores in seqScores.iteritems():
+    scoreTypes = allScores.values()[0]
+    for seq, scores in allScores.iteritems():
         for scoreType in scoreTypes:
             score = scores[scoreType]
             guideData[scoreType].append(score)
@@ -58,7 +60,7 @@ def parseScores(inDir, datasets):
     #return fileGuideData
 
 def main():
-    scoreDict = parseScores("effData", ["xu2015Train", "chari2015Train", "doench2014-Hs"])
+    scoreDict = parseScores("effData", ["xu2015TrainHl60", "chari2015Train", "doench2014-Hs"])
 
     rows = []
     #for dataset, scoreDict in dataScores.iteritems():
@@ -67,6 +69,7 @@ def main():
     for score1, score2 in combinations(scoreTypes, 2):
         scores1 = scoreDict[score1]
         scores2 = scoreDict[score2]
+        print score1, score2, scores1, scores2
         if None in scores1 or None in scores2:
             print "misssing scores, skipping %s-%s" % (score1, score2)
             continue
