@@ -1,7 +1,7 @@
 # filter the data from compEffScores for the plotHeat script
 
 ofh = open("out/heatData.tsv", "w")
-keepWords = ["Wang/Xu", "Doench Human", "Chari 293T", "Zebra", "Drosophila", "elegans", "Housden"]
+keepWords = ["Wang/Xu", "Doench MOLM", "Chari 293T", "Zebra", "Drosophila", "elegans", "Housden"]
 
 doneLines = set()
 for line in open("out/effScoreComp.tsv"):

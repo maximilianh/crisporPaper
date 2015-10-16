@@ -36,36 +36,49 @@ filtAnnotateOfftargets.py: creates SUPPL FILE 1 out/annotOfftargets.tsv from off
    Creates out/annotFiltOfftargets.tsv with 413 filtered off-targets.
    Prints a few basic stats to stdout.
 
-plotGcOtCount.py: scatter plot of off-target count vs GC content. Creates FIGURE 1.
+plotGcOtRatio.py: scatter plot of on/off-target ratio vs GC content. Creates FIGURE 1.
+        Output: 
+
+plotGcSpecScore.py: scatter plot GC content vs specificity score.
+        Creates SUPPL FIGURE S1
+        Output: out/gcSpecScores.pdf
 
 plotVenn.py: Creates out/venn.pdf
         Input are offtargets.tsv
-        = SUPPL FIGURE 1: venn diagram of EMX1 VEGFA off-target overlaps.
+        = SUPPL FIGURE S2: venn diagram of EMX1 VEGFA off-target overlaps.
         Also creates SUPPL FILES 2 (EMX) and 3 (VEGFA) with the details of the overlaps.
 
 plotGuideMismatchCount.py: Creates out/specScoreMMComp.pdf 
-        = SUPPL FIGURE 3. 
+        = SUPPL FIGURE S3. 
         Input are out/offtargetsFilt.tsv and the files in crisporOfftargets/,
         cropitOfftargets/ and mitOfftargets/.
 
-plotMismatchFraction.py : creates a plot of
-        off-target strength versus mismatch count, out/mismatchFraction-all.pdf
+plotMismatchFraction.py : creates a plot off-target strength versus mismatch count
         = FIGURE 2 
         Input: out/offtargetsFilt.tsv and the files in crisporOfftargets/
+        Output: out/out/mismatchFraction-all.pdf
 
-plotRoc.py: create ROC plot = FIGURE 3
+plotRoc.py: create ROC plot 
+        = FIGURE 3
         Input: the files in crisporOfftargets, mitOfftargets and cropitOfftargets
+        Output: out/roc.pdf
 
 compareOfftargetTools.py: 
         Creates a table with MIT versus CRispor versus CassOffFinder.
         Input: the files in crisporOfftargets/, casOffOfftargets/ and mitOfftargets/
         Output: out/mitCrisporSensDiff.tsv
 
-Efficacy scoring
+compSpecScoreVsOtCount.py:
+        Creates a scatterplot that shows specificity score histogram, off-target frequency
+        and off-target count, 
+        = SUPPL FIG S4 and FIGURE 4
+        Output: out/specScoreVsOtCount-CRISPOR.pdf and out/specScoreVsOtCount-MIT.pdf
+
+Efficiency scoring
 ================
 
 effData/:
-Contains the data from the efficacy studies.
+Contains the data from the efficiency studies.
 Each subdirectory contains supplementary files or converted excel tables and a conversion script
 for one paper.
 convert.py or log.txt that converts these to a file. the output is written to a file <author><year>.tab with always the three same columns.  (guideName, sequence, cleavageFrequency). 
@@ -78,7 +91,7 @@ To git clone the github repo to ../crispor:
         git clone https://github.com/maximilianh/crisporWebsite ../crispor/
 
 corrCellType.py: creates SUPPL TABLE 4
-        Creates a table with inter-cell variation between efficacy experiments.
+        Creates a table with inter-cell variation between efficiency experiments.
         Input: various files in effData/
         Output: out/corrCellType.tsv
 
@@ -97,7 +110,17 @@ effDataAddScores.py:
 
 compEffScores.py
         Main script. Compares predicted scores from effData/*.scores.tab with
-        obtained efficacy from the same files. Creates 
+        obtained efficiency from the same files. 
+        Input: effData/*.scores.tab
+        Output: out/effScoreComp.tsv and out/compEffScores-train.pdf and
+        out/compEffScores-valid.pdf
+
+plotHeat.R: 
+        Creates the heatmap of spearman correlations 
+        Input: out/effScoreComp.tsv
+        Output: out/heatData.tsv and out/heatMap.pdf
+        = FIGURE 5
+        Has to be run with "Rscript plotHeat.R" unlike all other scripts.
 
 scoreCutoffs.py:
         obtain the 75 percentiles from the scores and print to stdout.

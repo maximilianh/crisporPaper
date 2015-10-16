@@ -33,8 +33,9 @@ evalSets = ["farboud2015", "ren2015", "gagnon2014", "varshney2015"]
 trainSets = ["gagnon2014"]
 
 # datasets to apply dec tree classifier on
-testSets = ["schoenig", "xu2015FOX-AR", "xu2015AAVS1", "xu2015TrainHl60", "chari2015Train", "eschstruth", "varshney2015", "ren2015", "farboud2015", "doench2014-Hs", 'chari2015Valid_293T', "housden2015", "morenoMateos2015"]
+testSets = ["schoenig", "xu2015TrainHl60", "chari2015Train", "eschstruth", "varshney2015", "ren2015", "farboud2015", "doench2014-Hs", "housden2015", "morenoMateos2015", "shkumatava"]
 # removed:"museumIC50", 
+# removed: "xu2015FOX-AR", "xu2015AAVS1", 'chari2015Valid_293T', 
 testSets.extend(trainSets)
 # training datasets
 #inData = ["ren2015", "farboud2015"]

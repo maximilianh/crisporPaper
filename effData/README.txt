@@ -18,3 +18,14 @@ The .context.tab files include the +- 50bp context around the PAM, based on the
 
 The .scores.tab files include all the former fields + all efficiency scores.
 They were created with the script ../effDataAddScores.py
+
+CHANGES:
+
+One sequence in eschstruth.context was manually changed from 
+CCTCAGTTGACACTTTTGAGCGG = the sequence in the reference genome to 
+CCTCAGTTGACAGGTTTCAGCGG = the sequence in this strain 
+So if you regenerate this .context.tab file from guides.tab, 
+you would have to introduce this mutation again.
+
+
+

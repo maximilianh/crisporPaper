@@ -109,6 +109,7 @@ def parseSpecScores(fname, cacheFname):
     if isfile(cacheFname):
         print "reading score histogram from temp file %s" % cacheFname
         return pickle.load(open(cacheFname))
+
     hist = [0] * 10
     totalCount = 0
     for line in open(fname):
@@ -129,8 +130,8 @@ def parseSpecScores(fname, cacheFname):
 
 def main():
     maxMismatches = 4
-    # get guide seq off-target counts and names
     guideValidOts, guideSeqs = parseOfftargets("out/annotFiltOfftargets.tsv", maxMismatches, False, None)
+
     # get sum of off-target frequencies
     strongOtCounts, weakOtCounts, otShareSum = parseOtCounts("out/annotFiltOfftargets.tsv")
 

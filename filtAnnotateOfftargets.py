@@ -7,7 +7,7 @@
 # - output overview data on offtargets with likely "bulge" effects?
 from annotateOffs import *
 
-def makeOutRows(inRows, targetSeqs):
+def makeOutRows(inRows, targetSeqs, specScores):
     rows = []
     for row in inRows:
         guideSeq = targetSeqs[row.name]
@@ -21,26 +21,27 @@ def makeOutRows(inRows, targetSeqs):
         bulgeRnaMm, bulgeRnaGuideSeqs, bulgeRnaOtSeqs, bulgeRnaLogos = findGappedSeqs(guideSeq, otSeq, mmCount-3)
         bulgeDnaMm, bulgeDnaOtSeqs, bulgeDnaGuideSeqs, bulgeDnaLogos = findGappedSeqs(otSeq, guideSeq, mmCount-3)
 
-        otRow = [row.name, guideSeq, otSeq, str(guideGc), \
-                row.score, str(mmCount), otScore, diffLogo, \
+        specScore = specScores[guideSeq]
+        otRow = [row.name, guideSeq, specScore, otSeq, str(guideGc), \
+                float(row.score), str(mmCount), otScore, diffLogo, \
                 bulgeRnaMm, ",".join(bulgeRnaGuideSeqs), ",".join(bulgeRnaOtSeqs), \
                 bulgeDnaMm, ",".join(bulgeDnaGuideSeqs), ",".join(bulgeDnaOtSeqs) \
                 ]
         rows.append(otRow)
 
-    rows.sort(key=operator.itemgetter(6))
+    rows.sort(key=operator.itemgetter(5), reverse=True)
     return rows
 
-def annotateOfftargets(inFname, outFname):
+def annotateOfftargets(inFname, outFname, specScores):
     # take the raw list of off-target sequences and add annotations to it, like
     # number of mismatches, gc content, off-target score, efficiency scores, etc
     inRows, targetSeqs = parseRawOfftargets(inFname, removeCellLine=True)
     print "%d offtargets, %d guides" % (len(inRows), len(targetSeqs))
 
-    rows = makeOutRows(inRows, targetSeqs)
+    rows = makeOutRows(inRows, targetSeqs, specScores)
 
     # write out rows
-    headers = ["name", "guideSeq", "otSeq", "guideGc", "readFraction", "mismatches", "otScore", "diffLogo","bulgeRnaMmCount", "bulgeRnaGuideSeq", "bulgeRnaOtSeq", "bulgeDnaMmCount", "bulgeDnaGuideSeq", "bulgeDnaOtSeq"]
+    headers = ["name", "guideSeq", "guideSpecScore4MM", "otSeq", "guideGc", "readFraction", "mismatches", "otScore", "diffLogo","bulgeRnaMmCount", "bulgeRnaGuideSeq", "bulgeRnaOtSeq", "bulgeDnaMmCount", "bulgeDnaGuideSeq", "bulgeDnaOtSeq"]
     ofh = open(outFname, "w")
     ofh.write( "\t".join(headers) )
     ofh.write( "\n")
@@ -93,16 +94,33 @@ def filterOfftargets(inFname, outFname):
     print "kept %d off-targets" % count
     print "output written to %s" % ofh.name
 
+def getSpecScores():
+    " obtain spec scores by parsing off-target lists. Use a cache to speed up subsequent runs. "
+    TMPFNAME = "/tmp/specScores.pickle"
+    if isfile(TMPFNAME):
+        print "reading spec scores  from temp file %s" % TMPFNAME
+        return pickle.load(open(TMPFNAME))
+
+    maxMismatches = 4
+    crisporOffs = parseCrispor("crisporOfftargets", None, maxMismatches)
+    specScores = {}
+    for guideSeq in crisporOffs.keys():
+        specScores[guideSeq] = calcMitGuideScore_offs(guideSeq, crisporOffs[guideSeq])
+    pickle.dump(specScores, open(TMPFNAME, "w"))
+    return specScores
+
 def main():
+    specScores = getSpecScores()
+
     inFname = "offtargets.tsv"
     annotFname = "out/annotOfftargets.tsv"
     print "annotating without filter:"
-    annotateOfftargets(inFname, annotFname)
+    annotateOfftargets(inFname, annotFname, specScores)
 
     filtFname = "out/offtargetsFilt.tsv"
     filtAnnotFname = "out/annotFiltOfftargets.tsv"
 
     filterOfftargets(inFname, filtFname)
-    annotateOfftargets(filtFname, filtAnnotFname)
+    annotateOfftargets(filtFname, filtAnnotFname, specScores)
 
 main()

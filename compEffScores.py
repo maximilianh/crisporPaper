@@ -59,7 +59,7 @@ datasetDescs = {
     "xu2015Train": "Wang/Xu",
     "xu2015TrainHl60": "Wang/Xu HL60",
     "xu2015TrainKbm7": "Wang/Xu KBM7",
-    "doench2014-Hs": "Doench Human MOLM13/NB4/TF1",
+    "doench2014-Hs": "Doench MOLM13/NB4/TF1",
     "doench2014-Mm": "Doench Mouse",
     "housden2015": "Housden Dros-S2R+",
     "doench2014-CD33Exon2": "Doench CD33 Exon2",
@@ -79,6 +79,12 @@ datasetDescs = {
     "eschstruth": "Eschstruth Indel T7 Rank",
     "chari2015Train": "Chari Human",
     "chari2015Train293T": "Chari 293T",
+    "alenaOthers": "Shkumatava Lab: Helene/Yuvia/Antoine",
+    "alenaPerrine": "Shkumatava Lab: Perrine",
+    "alenaHelene": "Shkumatava Lab: Helene",
+    "alenaHAP": "Shkumatava Lab: Helene/Antoine/Perrine",
+    "alenaAntoine": "Shkumatava Lab: Antoine",
+    "alenaYuvia": "Shkumatava Lab: Yuvia",
     "concordet2-Hs": "Conc2 Hs",
     "concordet2-Mm": "Conc2 Mm",
     "concordet2-Rn": "Conc2 Rn",
@@ -237,7 +243,7 @@ def plotLargeScale(corrFname):
 def plotSmallScale():
     # plot small-scale studies
 
-    figCount = 15
+    figCount = 22
     fig, axArr = plt.subplots(figCount, len(scoreTypes), sharey="row")
     fig.set_size_inches(len(scoreTypes)*5,figCount*4)
 
@@ -274,7 +280,13 @@ def plotSmallScale():
     #plotDataset("museumT7", axArr[9],  "Concordet\ncell type?, PPP1R12C locus\nelectrop., T7")
     #plotDataset("museumIC50", axArr[10],  "Concordet\ncells?\nelectrop., IC50 assay(name?)")
     plotDataset("schoenig", axArr[14],  "Schoenig\nK562\nLipofection (K2), bGal assay\nbGal: Wefers, PNAS 2013", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
-    #plotDataset("eschstruth", axArr[12],  "Eschstruth\nZebrafish\nInjection", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
+    plotDataset("alenaOthers", axArr[15],  "Shkumatava Lab Others\nZebrafish\nInjection", yLabel="Mod. frequency")
+    plotDataset("alenaPerrine", axArr[16],  "Shkumatava Lab Perreine\nZebrafish\nInjection", yLabel="Mod. frequency")
+    plotDataset("alenaHelene", axArr[17],  "Shkumatava Lab Helene\nZebrafish\nInjection", yLabel="Mod. frequency")
+    plotDataset("alenaYuvia", axArr[18],  "Shkumatava Lab Yuvia\nZebrafish\nInjection", yLabel="Mod. frequency")
+    plotDataset("alenaAntoine", axArr[19],  "Shkumatava Lab Antoine\nZebrafish\nInjection", yLabel="Mod. frequency")
+    plotDataset("alenaHAP", axArr[20],  "Shkumatava: Henele/Antoine/Perrine\nZebrafish\nInjection", yLabel="Mod. frequency")
+    plotDataset("eschstruth", axArr[21],  "Eschstruth\nZebrafish\nInjection", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
     #plotDataset("concordet2-Hs", axArr[9],  "")
     #plotDataset("concordet2-Mm", axArr[10], "mm9", "")
     #plotDataset("concordet2-Rn", axArr[11], "rn5", "")
@@ -296,7 +308,7 @@ def main():
     #"XuData/modFreq.tab" 
     #extendTabAddContext("temp.tab")
 
-    plotLargeScale("out/effScoreComp.tsv")
     plotSmallScale()
+    plotLargeScale("out/effScoreComp.tsv")
 
 main()

@@ -12,60 +12,64 @@ import string
 from annotateOffs import *
 
 from collections import defaultdict
-#data = numpy.genfromtxt("offtargets.tsv", names=True)
-otCounts = defaultdict(int)
-gcCounts = defaultdict(int)
-allGuides = set()
-offtargetFreqs = defaultdict(float)
-ontargetFreqs = dict()
-guideSeqs = dict()
-for row in iterTsvRows("offtargets.tsv"):
-    if row.type==("on-target"):
-        guideGc = (row.seq[:20].count("G") + row.seq[:20].count("C")) / 20.0
-        if row.score=="NA":
+
+def parseOtRatios():
+    otCounts = defaultdict(int)
+    gcCounts = defaultdict(int)
+    allGuides = set()
+    offtargetFreqs = defaultdict(float)
+    ontargetFreqs = dict()
+    guideSeqs = dict()
+    for row in iterTsvRows("offtargets.tsv"):
+        if row.type==("on-target"):
+            guideGc = (row.seq[:20].count("G") + row.seq[:20].count("C")) / 20.0
+            if row.score=="NA":
+                continue
+            gcCounts[row.name] = guideGc
+            ontargetFreqs[row.name] = float(row.score)
+            guideSeqs[row.name] = row.seq
             continue
-        gcCounts[row.name] = guideGc
-        ontargetFreqs[row.name] = float(row.score)
-        guideSeqs[row.name] = row.seq
-        continue
-    allGuides.add(row.name)
-    freq = float(row.score)
-    if freq==0.0:
-        continue
-    #if freq<0.01:
-        #print "skipping", row
-        #continue
-    otCounts[row.name]+=1
-    offtargetFreqs[row.name] += freq
+        allGuides.add(row.name)
+        freq = float(row.score)
+        if freq==0.0:
+            continue
+        #if freq<0.01:
+            #print "skipping", row
+            #continue
+        otCounts[row.name]+=1
+        offtargetFreqs[row.name] += freq
 
-offtargetFreqs["Ran_EMX1-sg1"] = 0.0
-offtargetFreqs["Ran_EMX1-sg2"] = 0.0
-for row in iterTsvRows("origData/Ran2015/convertNoSeq.tab"):
-    freq = float(row.score)
-    if row.type==("on-target"):
-        ontargetFreqs[row.name] = freq
-        continue
-    #print row.name, freq
-    offtargetFreqs[row.name] += freq
+    offtargetFreqs["Ran_EMX1-sg1"] = 0.0
+    offtargetFreqs["Ran_EMX1-sg2"] = 0.0
 
-print "ontarget", ontargetFreqs["Ran_EMX1-sg2"]
-print "offtarget", offtargetFreqs["Ran_EMX1-sg2"]
+    #for row in iterTsvRows("origData/Ran2015/convertNoSeq.tab"):
+        #freq = float(row.score)
+        #if row.type==("on-target"):
+            #ontargetFreqs[row.name] = freq
+            #continue
+        #print row.name, freq
+        #offtargetFreqs[row.name] += freq
 
-offtargetRatios = {}
-for name, ontargetFreq in ontargetFreqs.iteritems():
-    offtargetFreq = offtargetFreqs[name]
-    ratio = offtargetFreq / ontargetFreq
-    #ratio = ontargetFreq / offtargetFreq
-    #if offtargetFreq==0.0:
-        #continue
+    #print "ontarget", ontargetFreqs["Ran_EMX1-sg2"]
+    #print "offtarget", offtargetFreqs["Ran_EMX1-sg2"]
 
-    offtargetRatios[name] = ratio
+    offtargetRatios = {}
+    for name, ontargetFreq in ontargetFreqs.iteritems():
+        offtargetFreq = offtargetFreqs[name]
+        ratio = offtargetFreq / ontargetFreq
+        #ratio = ontargetFreq / offtargetFreq
+        #if offtargetFreq==0.0:
+            #continue
 
-plotData = offtargetRatios
+        offtargetRatios[name] = ratio
+    print "missing from plot: %s" % (allGuides - set(offtargetRatios))
+    print "total number of guides used: %d" % len(offtargetRatios)
+    print
+    return gcCounts, offtargetRatios
 
-print "missing from plot: %s" % (allGuides - set(plotData))
-print "total number of guides used: %d" % len(plotData)
-print
+gcCounts, otRatios = parseOtRatios()
+#plotData = offtargetRatios
+
 rows = gcCounts.items()
 #for name, gcCount in sorted(rows, key=operator.itemgetter(1)):
     #print name, gcCount, guideSeqs[name]
@@ -74,10 +78,10 @@ studyX = defaultdict(list)
 studyY = defaultdict(list)
 #studyZ = defaultdict(list)
 studyGuides = defaultdict(list)
-for name in plotData:
+for name in otRatios:
     gcCount = gcCounts[name]
     study = name.split("_")[0]
-    yVal = plotData[name]
+    yVal = otRatios[name]
     studyX[study].append(gcCount)
     studyY[study].append(yVal)
     studyGuides[study].append(name)

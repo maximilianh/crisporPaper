@@ -1,7 +1,7 @@
-ofh = open("../eschstruth.tab", "w")
+ofh = open("../eschstruth.guides.tab", "w")
 ofh.write("guide\tseq\tmodFreq\n")
 
-for line in open("AlexisEschstruth.txt"):
+for line in open("AlexisEschstruthCorrected.txt"):
     if line.startswith("#"):
         continue
     fs = line.strip().split("\t")

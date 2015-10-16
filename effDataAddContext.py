@@ -5,39 +5,66 @@
 
 from annotateOffs import *
 import glob
+import shutil
 
 # very few guides have mapping problems
 blackList = ['RPL36AL-4', 'Cd43-1']
 
-def runBlatExtend(seqs, db):
+def runBlatExtend(fname, seqs, db):
     """ extend 20mers to 100mers for eff score calculations, seqs is a dict id -> seq
     return a dict seqId -> list of (seq, genomePositionString)
     """
-    # write 20mers to fa file
+    # use cached BLAT results if possible
+    # this is so BLAT can be run on a different server, with more RAM and the most 
+    # sensitive settings 
+    print fname
+    blatBedFname = fname.replace(".guides.tab", ".blat.bed")
+    print blatBedFname
     inNames = set()
-    ofh = open("/tmp/temp.fa", "w")
-    for seqId, seq in seqs.iteritems():
-        ofh.write(">%s\n%s\n" % (seqId, seq))
-        inNames.add(seqId)
-    ofh.close()
+    if isfile(blatBedFname):
+        print "using %s instead of running BLAT" % blatBedFname
+        shutil.copy(blatBedFname, "/tmp/temp.bed")
+        for seqId, seq in seqs.iteritems():
+            inNames.add(seqId)
+    else:
+        # write 20mers to fa file
+        ofh = open("/tmp/temp.fa", "w")
+        for seqId, seq in seqs.iteritems():
+            ofh.write(">%s\n%s\n" % (seqId, seq))
+            inNames.add(seqId)
+        ofh.close()
 
-    print "running BLAT, writing to /tmp/temp.bed"
-    blatServer, port = blatServers[db]
-    #cmd = "gfClient %s.soe.ucsc.edu %s /gbdb/%s /tmp/temp.fa /tmp/temp.psl -minScore=20 -nohead -minIdentity=100 -maxIntron=0 -dots=1 ; pslToBed /tmp/temp.psl /tmp/temp.bed" % (blatServer, port, db)
-    cmd = "blat /gbdb/%s/%s.2bit /tmp/temp.fa /tmp/temp.psl -minScore=20 -stepSize=4 -noHead  ; pslToBed /tmp/temp.psl /tmp/temp.bed" % (db, db)
-    os.system(cmd)
+        print "running BLAT, writing to /tmp/temp.bed"
+        #blatServer, port = blatServers[db]
+        #cmd = "gfClient %s.soe.ucsc.edu %s /gbdb/%s /tmp/temp.fa /tmp/temp.psl -minScore=20 -nohead -minIdentity=100 -maxIntron=0 -dots=1 ; pslToBed /tmp/temp.psl /tmp/temp.bed" % (blatServer, port, db)
+        cmd = "blat -ooc=/gbdb/%s/11.ooc -dots=1 /gbdb/%s/%s.2bit /tmp/temp.fa /tmp/temp.psl -minScore=20 -noHead -stepSize=5 ; pslToBed /tmp/temp.psl /tmp/temp.bed" % (db, db, db)
+        print cmd
+        assert(os.system(cmd)==0)
 
     matches = defaultdict(list) # seqId -> list of (chrom, start, end, strand)
     for line in open("/tmp/temp.bed"):
         chrom, start, end, name, score, strand = line.split()[:6]
         if "_hap" in chrom or "random" in chrom or "chrUn" in chrom:
             continue
+        start = int(start)
+        end = int(end)
+        if end-start==23:
+            if strand=="+":
+                end -= 3
+            else:
+                start += 3
         if (int(end)-int(start))!=20:
             continue
         matches[name].append( (chrom, int(start), int(end), strand) )
 
+        # these matches cannot be found by gfClient so inject them here
+        #if "Hamid_Guide_1a" in inNames:
+            #matches["Hamid_Guide_1a"].append( ("chr3", 66933397, 66933420, "+") )
+            #matches["Hamid_Guide_7b"].append( ("chr3", 66933396, 66933419, "-") )
+
     notFoundNames = inNames - set(matches)
-    logging.warn("These sequences were not found with BLAT: %s" % ",".join(notFoundNames))
+    if len(notFoundNames)!=0:
+        logging.warn("These sequences were not found with BLAT: %s" % ",".join(notFoundNames))
 
     for name, hits in matches.iteritems():
         if len(hits)!=1:
@@ -62,6 +89,7 @@ def runBlatExtend(seqs, db):
     ofh.close()
 
     cmd = "twoBitToFa /gbdb/%s/%s.2bit -bed=/tmp/tempExt.bed /tmp/tempExt.fa" % (db, db)
+    print cmd
     os.system(cmd)
     seqs = parseFastaAsList(open("/tmp/tempExt.fa"))
     assert(len(seqs)==len(positions))
@@ -84,6 +112,7 @@ def mapAndExtend20Mers():
             print "already there, %s" % outFname
             continue
 
+        print "working on %s" % fname
         dataset = basename(fname).split(".")[0]
         db = datasetToGenome[dataset]
 
@@ -92,11 +121,13 @@ def mapAndExtend20Mers():
             assert(row.guide not in seqs)
             seqs[row.guide] = row.seq
 
-        matches = runBlatExtend(seqs, db)
+        print "found %d sequences for BLAT" % len(seqs)
+        matches = runBlatExtend(fname, seqs, db)
 
         fullRows = []
         for row in iterTsvRows(fname):
             for longSeq, pos in matches[row.guide]:
+                longSeq = longSeq.upper()
                 newRow = [row.guide, row.seq.upper(), db, pos, row.modFreq, longSeq]
                 if not (longSeq.find(newRow[1][:20])==30):
                     print (longSeq[:20].find(newRow[1]))
@@ -186,5 +217,11 @@ def extend34Mers():
         print "Wrote %s" % ofh.name
         #break
 
+# if we have a .ext.tab file, then use it.
+# this is data where I have manually select the best match for multi matching 20mers
+# so we have the genome position already and I keep using it
 extend34Mers()
+
+# new data comes as raw 20mers and have to be unique
+# it's not mapped to the genome, so have to run BLAT
 mapAndExtend20Mers()

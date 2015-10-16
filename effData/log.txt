@@ -6,4 +6,7 @@ wc -l {schoenig*,ren*,museumT7,farboud*,varshney*,gagnon*}.ext.tab
  tabCat schoenigHs.scores.tab schoenigMm.scores.tab schoenigRn.scores.tab > schoenig.scores.tab
  tabCat concordet2-*.scores.tab > concordet2.scores.tab
  tabCat schoenig*.scores.tab > schoenig.scores.tab
- tabCat chari2015Train.scores.tab chari2015Train*.scores.tab doench2014-Hs.scores.tab doench2014-Mm.scores.tab farboud2015.scores.tab gagnon2014.scores.tab morenoMateos2015.scores.tab ren2015.scores.tab schoenig.scores.tab varshney2015.scores.tab xu2015.scores.tab xu2015AAVS1.scores.tab xu2015FOX-AR.scores.tab xu2015TrainHl60.scores.tab xu2015TrainKbm7.scores.tab > ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile2.tsv 
+ tabCat chari2015Train293T.scores.tab chari2015TrainK562.scores.tab doench2014-Hs.scores.tab doench2014-Mm.scores.tab farboud2015.scores.tab gagnon2014.scores.tab morenoMateos2015.scores.tab ren2015.scores.tab schoenig.scores.tab varshney2015.scores.tab xu2015.scores.tab xu2015AAVS1.scores.tab xu2015FOX-AR.scores.tab xu2015TrainHl60.scores.tab xu2015TrainKbm7.scores.tab > ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile2.tsv 
+
+# very little overlap between chari and xu
+tabCat xu2015TrainHl60.scores.tab chari2015Train293T.scores.tab | cut -f3 | tabUniq -rs --minCount=1| cut -f1 

@@ -31,6 +31,7 @@ dataDescs = {
      'farboud2015' : "Farboud C.elegans",
      'eschstruth' : "Eschstruth Zebrafish        ",
      'morenoMateos2015' : "CrisprScan Training",
+     'shkumatava' : "Shkumatava Dataset",
      'housden2015' : "Housden Dros. Training",
      }
 
@@ -49,6 +50,7 @@ dataSubs = {
      'farboud2015' : ("Zebrafish", "Injection", "Sequencing"),
      'eschstruth' : ("Zebrafish", "Injection", "T7"),
      'morenoMateos2015' : ("Zebrafish", "Injection", "Sequencing"),
+     'shkumatava' : ("Zebrafish", "Injection", "Cloned + Seq."),
      'housden2015' : ("Dros. S2R+", "Transfection", "Lucif.")
     }
 topDatasets = [
@@ -62,9 +64,11 @@ topDatasets = [
     ]
 
 middleDatasets = [
-    'xu2015AAVS1',
-    'xu2015FOX-AR',
-    'chari2015Valid_293T'
+    #'xu2015AAVS1',
+    #'xu2015FOX-AR',
+    #'chari2015Valid_293T',
+    "varshney2015",
+    "gagnon2014"
 ]
 
 #buttomDatasets = [

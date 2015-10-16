@@ -80,7 +80,16 @@ cat offtargetsFilt.tsv | awk '($3>0.01)' | grep -v on- | awk '($2!~/GG$/)' | wc 
  less out/annotFiltOfftargets.tsv  | awk '($6=="mismatches" || $6>=5)' > plus5Mismatches.tsv
  #tar cvfz crisporEffScores1.tar.gz crisporEffScores.py bin
  #scp crisporEffScores1.tar.gz dev:public_html/crispor/
- cp offtargets.tsv ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile1.tsv
  cp out/annotOfftargets.tsv ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile1.tsv
  cp out/mitCrisporSensDiff.tsv ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile4.tsv
  cp out/compEffScores-valid.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile3.pdf
+cp out/gcOtCount.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig1.pdf
+cp out/venn.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.pdf
+cp out/specScoreMMComp.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig3.pdf
+cp out/specScoreMMComp.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig2.pdf
+cp out/roc.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig3.pdf
+tabCat effData/*.scores.tab > ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile2.tsv 
+cp out/specScoreMMComp.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig3.pdf
+cp out/gcSpecScores.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.pdf
+cp out/specScoreVsOtCount-MIT.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig4.pdf
+cp out/heatMap.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig5.pdf

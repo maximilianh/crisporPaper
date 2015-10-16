@@ -1,0 +1,55 @@
+guide on top, genome underneath
+seven off-targets in total
+
+1
+
+Wang-WAS-CR4 with MYCN off-target
+TGGATGGAGGAATGAGGAGT
+GAGGATGGGGAATGAGGAGT    
+** *** *      
+
+with gap:
+ TGGATGGAGGAATGAGGAGT
+GAGGATGG-GGAATGAGGAGT    
+
+2
+
+Frock RAG1A:
+without gap
+GCCTCTTTCCCACCCACCTT    
+GCCTCTCCCCACCCACCCTT
+      **  **  **  *
+
+with gap
+GCCTCTTTCCCACCCACCTT    
+GCCTCT-CCCCACCCACCCTT
+       *          *
+
+3 and 4
+
+Frock VEGFA et Tsai VEGFA:
+without gap
+GGGTGGGGGGAGTTTGCTCC
+CTGGTGGGGGAGCTTGCTCC
+** **       * 
+
+with gap:
+ GGGTGGGGGGAGTTTGCTCC
+ TGGTGGGG-GAGCTTGCTCC
+ *           *
+
+5
+
+Frock VEGFA 3:
+GGGTGGGGGGAGTTTGCTCC    
+AGGAAGGAGGAGTTAGCTCC
+*  **  *      *
+gap does not improve alignment
+
+6 
+
+Frock VEGFA 4:
+GGGTGGGGGGAGTTTGCTCC
+AGCTGAGGGGAGCTTGCTCT
+* *  *      *      *
+gap does not improve alignment

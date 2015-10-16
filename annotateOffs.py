@@ -3,6 +3,7 @@ import glob, copy, sys, math, operator, random, re, collections, tempfile, subpr
 import pickle
 from collections import defaultdict, Counter
 from os.path import basename, join, splitext, isfile, dirname
+import glob
 
 import svmlight # install with 'sudo pip install svmlight'
 
@@ -28,11 +29,17 @@ datasetToGenome = {
     "schoenigHs": "hg19",
     "schoenigMm": "mm9",
     "schoenigRn": "rn5",
+    "schoenigMm-part2": "mm9",
     "concordet2-Hs": "hg19",
     "concordet2-Mm": "mm9",
     "concordet2-Rn": "rn5",
     "concordet2": "hg19",
     "morenoMateos2015": "danRer7",
+    "morenoMateos2015": "danRer7",
+    "alenaNonYuvia" : "danRer10",
+    "alenaOthers" : "danRer10",
+    "alenaPerrine" : "danRer10",
+    "alenaYuvia" : "danRer10",
     "chari2015Train": "hg19"
 }
 
@@ -859,12 +866,17 @@ def parseMit(dirName, guideSeqs):
 def parseCrispor(dirName, guideNames, maxMismatches):
     """ parse crispor output files, return as dict guideSeq -> ot seq -> otScore 
     Also return a dict with guideName -> guideSeq
+    guideNames can be None, in which case all data is read.
     """
     print("Parsing CRISPR results from dir %s" % dirName)
     predScores = defaultdict(dict)
     #targetSeqs = {}
     #for fname in glob.glob(dirName+"/*.tsv"):
     #print "XX", guideNames
+    if guideNames is None:
+        fnames = glob.glob(join(dirName, "*.tsv"))
+        guideNames = [splitext(basename(fname))[0] for fname in fnames]
+
     for guideName in guideNames:
         # remove cell lines for KIM et al
         guideName = guideName.replace("/K562", "").replace("/Hap1","")
@@ -1326,12 +1338,12 @@ def convToRankPerc(vec):
 # sqlUcsc hgcentral -e 'select * from blatServers where db="mm9"'
 # rsync -avp hgdownload.soe.ucsc.edu::gbdb/dm3/dm3.2bit ./ --progress --partial
 blatServers = {
-    "hg19": ("blat4a", "17779"),
-    "danRer10" : ("blat4c", "17863"),
+    "hg19": ("blat1a", "17779"),
+    "danRer10" : ("blat1c", "17863"),
     "dm3" : ("blat4d", "17791"),
     "ce6" : ("blat4d", "17841"),
-    "rn5" : ("blat4b", "17795"),
-    "mm9" : ("blat4c", "17779")
+    "rn5" : ("blat1b", "17795"),
+    "mm9" : ("blat1c", "17779")
 }
 
 def extendSeqs(seqs, db, fiveExt, threeExt):
@@ -1585,7 +1597,15 @@ def parseEffScores(datasetName):
         for st in scoreTypes:
             scores[seq][st] = float(row._asdict()[st])
 
-        scores[seq]["wang"] = scores[seq]["wang"]
+        #scores[seq]["wang"] = scores[seq]["wang"]
+
+        # stay compatible with new files where all scores all 0-100
+        if scores[seq]["doench"] > 1.0:
+            scores[seq]["doench"] = scores[seq]["doench"] / 100
+        if scores[seq]["wangOrig"] > 1.0:
+            scores[seq]["wangOrig"] = scores[seq]["wangOrig"] / 100
+        if scores[seq]["wang"] > 1.0:
+            scores[seq]["wang"] = scores[seq]["wang"] / 100
 
         guideSeq = row.seq[:20]
         scores[seq]["finalGc6"] = int(countFinalGc(guideSeq, 6)>=4)
