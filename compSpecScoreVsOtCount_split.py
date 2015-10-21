@@ -49,20 +49,20 @@ def splitXyzVals(xVals, yVals, zVals, zCutoff):
             z1.append(z)
     return (x1, y1, np.array(z1)), (x2, y2, np.array(z2))
             
-def makePlot(xVals, yVals, areas):
+def makePlot(ax, xVals, yVals, areas):
 
     (highX, highY, highZ), (lowX, lowY, lowZ) = splitXyzVals(xVals, yVals, areas, 0.005)
 
     #print lowX, lowY, lowZ, 200*lowZ
     #edgecolor='none', \
-    plt.scatter(lowX, lowY, \
+    ax.scatter(lowX, lowY, \
         alpha=.7, \
         marker="x", \
         edgecolor="black", \
         s=BUBBLEFAC*lowZ*SMALLFAC)
 
     #print highX, highY, highZ
-    plt.scatter(highX, highY, \
+    ax.scatter(highX, highY, \
         alpha=.7, \
         marker="o", \
         s=BUBBLEFAC*highZ)
@@ -71,9 +71,9 @@ def makePlot(xVals, yVals, areas):
         #marker="o", \
         #s=BUBBLEFAC*np.array(areas))
 
-    plt.xticks(range(0, 101, 10))
-    plt.xlim(0,100)
-    plt.ylim(0,70)
+    ax.set_xticks(range(0, 101, 20))
+    ax.set_xlim(0,100)
+    ax.set_ylim(0,70)
 
     # invisible markers, needed for legend
     legPlots = []
@@ -88,17 +88,18 @@ def makePlot(xVals, yVals, areas):
             #size *= 10
 
         legPlots.append(
-            plt.scatter([],[], s=size, edgecolors='blue', marker=fracChar, lw=1),
+            ax.scatter([],[], s=size, edgecolors='blue', marker=fracChar, lw=1),
 
         )
 
     # add legend
-    leg1 = plt.legend(legPlots, ["0.1%", "0.5%", "1%", "5%", "10%", "30%", "50%", "70%", "90%"],
-           #loc='upper right',
-           bbox_to_anchor=(1.15, 1), loc=2, borderaxespad=0., \
+    leg1 = ax.legend(legPlots, ["0.1%", "0.5%", "1%", "5%", "10%", "30%", "50%", "70%", "90%"],
+           loc='upper right',
+           #bbox_to_anchor=(1.15, 1), loc=2, borderaxespad=0., \
            ncol=1,
            fontsize=10, scatterpoints=1, title="Sum of\noff-target\nmodification\nfrequencies")
     plt.setp(leg1.get_title(),fontsize='small')
+    leg1.get_frame().set_linewidth(0.1)
     return leg1
 
 def parseSpecScores(fname, cacheFname):
@@ -126,8 +127,48 @@ def parseSpecScores(fname, cacheFname):
     yVals = [100*(float(x)/totalCount) for x in hist]
     #print fname, xVals, yVals
     pickle.dump((xVals, yVals), open(cacheFname, "w"))
+    xVals = np.array(xVals)
     return xVals, yVals
 
+def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCountsHistMit, suffix):
+
+    f, axarr = plt.subplots(1, 2)
+
+    # left subplot: scatter plot with bubble sizes
+    f.set_size_inches(10,4)
+    #f.subplots_adjust(top=0.10) # or whatever
+    leg1 = makePlot(axarr[0], xValsMit, yValsWeak, areas)
+    xlab = axarr[0].set_xlabel("%s Guide Specificity Score" % suffix)
+    axarr[0].set_ylabel("Off-targets found per guide", color="black")
+    axarr[0].set_xlim(0, 91)
+    axarr[0].set_xticks(range(0, 91, 10))
+    axarr[0].annotate('A', xy=(-.10, -.15), xycoords='axes fraction', fontsize=16,
+                    horizontalalignment='right', verticalalignment='bottom')
+
+    # right subplot: a histogram
+    axarr[1].set_xlabel("%s Guide Specificity Score" % suffix)
+    mitHistXVals = np.array(mitHistXVals)
+    genomeBars = axarr[1].bar(mitHistXVals+2, mitHistYVals, 3, edgecolor='white', color="green" , lw=1)
+    otBars = axarr[1].bar(mitHistXVals+3+2, otCountsHistMit, 3, edgecolor='white', color="blue" , lw=1)
+    axarr[1].set_ylim(0,50)
+    ylab = axarr[1].set_ylabel('Frequency of specificity', color="black")
+    axarr[1].set_yticks(range(0, 51, 10))
+    axarr[1].set_xticks(range(0, 101, 10))
+    axarr[1].set_yticklabels(["%d%%" % x for x in range(0, 51, 10)])
+    leg2 = axarr[1].legend( (otBars, genomeBars), ('Tested off-targets', 'Genome-wide'), loc="upper left" )
+    texts = leg2.get_texts()
+    plt.setp(texts,fontsize='small')
+    axarr[1].annotate('B', xy=(-.15, -.15), xycoords='axes fraction', fontsize=16,
+                    horizontalalignment='right', verticalalignment='bottom')
+
+
+    plt.tight_layout()
+    plotFname = "out/specScoreVsOtCount-%s.pdf" % suffix
+    #plt.savefig(plotFname, format = 'pdf')
+    plt.savefig(plotFname, format = 'pdf', bbox_extra_artists=(leg1,xlab,ylab), bbox_inches='tight')
+    plt.savefig(plotFname.replace(".pdf", ".png"), bbox_extra_artists=(leg1,), bbox_inches='tight')
+    print "wrote plot to %s, added .png" % plotFname
+    plt.close()
 def main():
     maxMismatches = 4
     guideValidOts, guideSeqs = parseOfftargets("out/annotFiltOfftargets.tsv", maxMismatches, False, None)
@@ -135,8 +176,10 @@ def main():
     # get sum of off-target frequencies
     strongOtCounts, weakOtCounts, otShareSum = parseOtCounts("out/annotFiltOfftargets.tsv")
 
-    histXVals, histYVals = parseSpecScores("wholeGenome/specScores.tab", "/tmp/crisporCache.pickle")
+    crisporHistXVals, crisporHistYVals = parseSpecScores("wholeGenome/specScores.tab", "/tmp/crisporCache.pickle")
     mitHistXVals, mitHistYVals = parseSpecScores("seleniumMit/seqScores.txt", "/tmp/mitCache.pickle")
+    assert(sum(crisporHistYVals)-100.0<0.01)
+    assert(sum(mitHistYVals)-100.0<0.01)
 
     if not isfile(TMPFNAME):
         crisporOffs = parseCrispor("crisporOfftargets", guideSeqs, maxMismatches)
@@ -153,6 +196,8 @@ def main():
     xValsMit = []
     yValsWeak = []
     yValsStrong = []
+    otCountsHistMit = [0] * 10
+    otCountsHistCrispor = [0] * 10
     areas = [] # size of the dots in the plot, one per xVal
     rows = []
     for guideName, guideSeq in guideSeqs.iteritems():
@@ -171,12 +216,21 @@ def main():
         xValsMit.append(mitScore)
         yValsWeak.append(weakOtCount)
         yValsStrong.append(strongOtCount)
+        otCountsHistMit[mitScore/10] += 1
+        otCountsHistCrispor[crisporScore/10] += 1
         areas.append(otShareSum[guideName])
 
         row = [str(x) for x in row]
         rows.append(row)
 
     rows.sort()
+
+    # transform to frequencies in %
+    otCountsHistMit = [100*x / float(len(guideSeqs)) for x in otCountsHistMit]
+    assert(sum(otCountsHistMit)==100)
+
+    otCountsHistCrispor = [100*x / float(len(guideSeqs)) for x in otCountsHistCrispor]
+    assert(sum(otCountsHistCrispor)==100)
 
     for row in rows:
         ofh.write( "\t".join(row)+'\n')
@@ -185,50 +239,8 @@ def main():
 
     pickle.dump(scoreCache, open(TMPFNAME, "w"))
 
-    plt.figure(figsize=(5,5))
+    makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCountsHistMit, "MIT")
 
-    #axy1 = plt.subplot(121)
-    leg1 = makePlot(xValsMit, yValsWeak, areas)
-    xlab = plt.xlabel("MIT Specificity Score")
-    plt.ylabel("Off-targets found per guide sequence", color="black")
-
-    ax1b = plt.twinx()
-    ax1b.bar(mitHistXVals, mitHistYVals, 10, edgecolor='white', color="lightblue" , alpha=0.4, lw=1)
-    ax1b.set_ylim(0,25)
-    ylab = ax1b.set_ylabel('Frequency of specificity in exons (unique 20mers)', color="grey")
-
-    #ax2 = plt.subplot(122, sharey=axy1)
-    #plt.setp( ax2.get_yticklabels(), visible=False)
-    #plt.ylim(0,60)
-
-    plotFname = "out/specScoreVsOtCount-MIT.pdf"
-    plt.savefig(plotFname, format = 'pdf', bbox_extra_artists=(leg1,xlab,ylab), bbox_inches='tight')
-    plt.savefig(plotFname.replace(".pdf", ".png"), bbox_extra_artists=(leg1,), bbox_inches='tight')
-    print "wrote plot to %s, added .png" % plotFname
-    plt.close()
-
-    # make the CRISPOR plot
-    plt.figure(figsize=(5,5))
-    leg1 = makePlot(xValsCrispor, yValsWeak, areas)
-
-    xlab = plt.xlabel("CRISPOR Specificity Score")
-    plt.ylabel("Off-targets found per guide sequence", color="black")
-    
-    # add 2nd y axis and plot histogram
-    ax2b = plt.twinx()
-    ylab = ax2b.set_ylabel('Frequency of specificity in exons (unique 20mers)', color="grey")
-    ax2b.set_ylim(0,20)
-    ax2b.bar(histXVals, histYVals, 10, edgecolor='white', color="lightblue" , alpha=0.4, lw=1)
-
-    #plt.tight_layout()
-
-    #plt.tight_layout()
-    # plt.subplots_adjust(hspace=0) # doesn't work
-
-    plotFname = "out/specScoreVsOtCount-CRISPOR.pdf"
-    plt.savefig(plotFname, format = 'pdf', bbox_extra_artists=(leg1,xlab,ylab), bbox_inches='tight')
-    plt.savefig(plotFname.replace(".pdf", ".png"), bbox_extra_artists=(leg1,), bbox_inches='tight')
-    print "wrote plot to %s, added .png" % plotFname
-    plt.close()
+    makeTwoSubplots(xValsCrispor, yValsWeak, areas, crisporHistXVals, crisporHistYVals, otCountsHistCrispor, "CRISPOR")
 
 main()

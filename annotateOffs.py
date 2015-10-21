@@ -39,6 +39,7 @@ datasetToGenome = {
     "alenaNonYuvia" : "danRer10",
     "alenaOthers" : "danRer10",
     "alenaPerrine" : "danRer10",
+    "alenaAngelo" : "danRer10",
     "alenaYuvia" : "danRer10",
     "chari2015Train": "hg19"
 }

@@ -10,3 +10,4 @@ wc -l {schoenig*,ren*,museumT7,farboud*,varshney*,gagnon*}.ext.tab
 
 # very little overlap between chari and xu
 tabCat xu2015TrainHl60.scores.tab chari2015Train293T.scores.tab | cut -f3 | tabUniq -rs --minCount=1| cut -f1 
+ tabCat schoenigRn.scores.tab schoenigHs.scores.tab schoenigMm.scores.tab > schoenig.scores.tab

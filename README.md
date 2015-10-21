@@ -68,11 +68,14 @@ compareOfftargetTools.py:
         Input: the files in crisporOfftargets/, casOffOfftargets/ and mitOfftargets/
         Output: out/mitCrisporSensDiff.tsv
 
-compSpecScoreVsOtCount.py:
+compSpecScoreVsOtCount_split.py:
         Creates a scatterplot that shows specificity score histogram, off-target frequency
         and off-target count, 
         = SUPPL FIG S4 and FIGURE 4
         Output: out/specScoreVsOtCount-CRISPOR.pdf and out/specScoreVsOtCount-MIT.pdf
+        The version of the script without _split.py is an older version that
+        overlays both diagrams into a single figure which didn't pass 
+        the coauthors/colleagues.
 
 Efficiency scoring
 ================
