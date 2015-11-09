@@ -86,7 +86,7 @@ for name in otRatios:
     studyY[study].append(yVal)
     studyGuides[study].append(name)
 
-colors  = ["green", "blue", "green", "blue", "red", "grey", "orange", "blue"]
+colors  = ["green", "grey", "green", "blue", "red", "grey", "orange", "blue"]
 markers = ["o", "s", "+", ">", "<", "o", ".", "o"]
 figs = []
 i = 0
@@ -107,7 +107,7 @@ for study in studies:
     #zVals = studyZ[study]
     for a in [ax, ax2]:
         studyFig = a.scatter(xVals, yVals, \
-            alpha=0.9, \
+            alpha=0.7, \
             marker=markers[i], \
             s=30, \
             color=colors[i])

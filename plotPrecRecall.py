@@ -18,7 +18,7 @@ scoreNames = ['doench', 'ssc', 'crisprScan', 'wangOrig', 'chariRank', 'fusi', "d
 
 dataDescs = {
      'varshney2015': "Varshney Zebrafish",
-     'ren2015': "Ren Drosophila",
+     'ren2015': "Ren Drosophila Training",
      'xu2015TrainHl60': "Wang/Xu KO Training",
      'gagnon2014': "Gagnon Zebrafish",
      'chari2015Train':"Chari Training",
@@ -28,10 +28,10 @@ dataDescs = {
      'xu2015AAVS1': "Xu Validation AAVS1",
      'xu2015FOX-AR': "Xu Validation FOX/AR",
      'schoenig': u'Sch\u00F6nig LacZ',
-     'farboud2015' : "Farboud C.elegans",
+     'farboud2015' : "Farboud C.elegans Training",
      'eschstruth' : "Eschstruth Zebrafish        ",
      'morenoMateos2015' : "CrisprScan Training",
-     'shkumatava' : "Shkumatava Dataset",
+     'alenaAll' : "Shkumatava Dataset",
      'housden2015' : "Housden Dros. Training",
      }
 
@@ -50,7 +50,7 @@ dataSubs = {
      'farboud2015' : ("Zebrafish", "Injection", "Sequencing"),
      'eschstruth' : ("Zebrafish", "Injection", "T7"),
      'morenoMateos2015' : ("Zebrafish", "Injection", "Sequencing"),
-     'shkumatava' : ("Zebrafish", "Injection", "Cloned + Seq."),
+     'alenaAll' : ("Zebrafish", "Injection", "Sanger Seq"),
      'housden2015' : ("Dros. S2R+", "Transfection", "Lucif.")
     }
 topDatasets = [
@@ -83,7 +83,7 @@ scoreDescs = {
     "doench" : "Doench",
     "ssc" : "Xu (Wang)",
     "chariRank" : "Chari Rank",
-    "crisprScan" : "CrisprScan",
+    "crisprScan" : "Moreno-Mateos",
     "fusi" : "Fusi (Doench)",
     "chariRaw" : "Chari",
     "finalGc6" : "Ren: 3'GC>4",
@@ -220,7 +220,7 @@ def plot(scores, dataNames, dataCountInfo, outfname):
 
 def main():
     scores, dataNames, dataCountInfo = parseData("out/binClassMetrics.tsv")
-    plot(scores, dataNames, dataCountInfo, "out/binClass.pdf")
+    plot(scores, dataNames, dataCountInfo, "out/precRecall.pdf")
 
 
 main()

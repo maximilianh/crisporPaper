@@ -1,8 +1,4 @@
- wc -l chari2015Train.ext.tab xu2015Train.ext.tab doench2014-*.ext.tab farboud2015.ext.tab gagnon2014.ext.tab ren2015.ext.tab xu2015.ext.tab 
 wc -l {schoenig*,ren*,museumT7,farboud*,varshney*,gagnon*}.ext.tab
-wc -l {schoenig*,ren*,museumT7,farboud*,varshney*,gagnon*}.ext.tab
- tabCat schoenigHs.tab schoenigMm.tab > schoenig.scores.tab
- tabCat schoenigHs.scores.tab schoenigMm.scores.tab > schoenig.scores.tab
  tabCat schoenigHs.scores.tab schoenigMm.scores.tab schoenigRn.scores.tab > schoenig.scores.tab
  tabCat concordet2-*.scores.tab > concordet2.scores.tab
  tabCat schoenig*.scores.tab > schoenig.scores.tab
@@ -11,3 +7,4 @@ wc -l {schoenig*,ren*,museumT7,farboud*,varshney*,gagnon*}.ext.tab
 # very little overlap between chari and xu
 tabCat xu2015TrainHl60.scores.tab chari2015Train293T.scores.tab | cut -f3 | tabUniq -rs --minCount=1| cut -f1 
  tabCat schoenigRn.scores.tab schoenigHs.scores.tab schoenigMm.scores.tab > schoenig.scores.tab
+tabCat alenaAngelo.scores.tab alenaYuvia.scores.tab alenaHAP.scores.tab > alenaAll.scores.tab

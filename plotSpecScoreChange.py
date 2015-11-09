@@ -16,21 +16,14 @@ from annotateOffs import *
 
 def parseSeqs(inFname):
     " parse guide seqs and their off-targets and index by name and mismatch count "
-    # read guide sequences
+    # get guide sequences
+    # get off-targets and index by name and mismatch count
     guideSeqs = {}
-    for row in iterTsvRows(inFname):
-        if row.type=="on-target":
-            guideSeqs[row.name] = row.seq
-
-    # now parse off-targets and index by name and mismatch count
     guideMms = defaultdict(dict)
     for row in iterTsvRows(inFname):
-        if row.type=="off-target":
-            if row.name not in guideSeqs:
-                continue
-            guideSeq = guideSeqs[row.name]
-            mmCount, diffLogo = countMmsAndLogo(guideSeq, row.seq)
-            guideMms[row.name].setdefault(mmCount, list()).append( (row.seq, diffLogo) )
+        guideSeqs[row.name] = row.guideSeq
+        mmCount = int(row.mismatches)
+        guideMms[row.name].setdefault(mmCount, list()).append(row.otSeq)
 
     return guideSeqs, guideMms
 
@@ -53,7 +46,7 @@ def makeDataRows(guideSeqs, guideMms):
             row.append(len(mmList))
 
             guideSeq = guideSeqs[guideName]
-            for otSeq, diffLogo in mmList:
+            for otSeq in mmList:
                 hitScore = calcHitScore(guideSeq[:20], otSeq[:20])
 
                 allSum += hitScore
@@ -88,7 +81,7 @@ def writeRows(rows, outFname):
     print "wrote %s" % outFname
 
 def main():
-    inFname = "out/offtargetsFilt.tsv"
+    inFname = "out/annotFiltOfftargets.tsv"
     guideSeqs, guideMms = parseSeqs(inFname)
 
     outFname = 'out/specScoreComp.tsv'
@@ -111,7 +104,7 @@ def main():
             continue
         doneSeqs.add(guideSeq)
         xVals, yVals = [], []
-        for maxMm in range(5,3, -1):
+        for maxMm in range(6,4, -1):
             if maxMm in scoreCache[guideName]:
                 specScore = scoreCache[guideName][maxMm]
             else:
@@ -119,8 +112,9 @@ def main():
                 scoreCache[guideName][maxMm] = specScore
             xVals.append(maxMm)
             yVals.append(specScore)
-            if maxMm==4:
+            if maxMm==5:
                 annotateXys.append( (maxMm, specScore, guideName) )
+
         fig = plt.plot(xVals, yVals, \
             color="k", \
             marker="None")
@@ -129,19 +123,6 @@ def main():
     pickle.dump(scoreCache, open(TMPFNAME, "w"))
 
     print "Not shown, because no 5MM or 6MM values: %s" % (", ".join(set(notShown)))
-        #fig = plt.scatter(xVals, yVals, \
-            #alpha=.5, \
-            #color=color, \
-            #marker=marker, \
-            #s=30)
-
-    #plt.legend(figs,
-           #["mismatches <= 3", "mismatches <= 4", "mismatches <= 5"],
-           #scatterpoints=1,
-           #loc='upper left',
-           #ncol=1,
-           #fontsize=10)
-    #plt.ylim(0, 100)
     labels = ["3 mismatches", "4 mismatches", "5 mismatches", "6 mismatches"]
     xTicks = [3, 4, 5, 6]
     plt.xticks(xTicks, list(labels), rotation='vertical')
@@ -150,13 +131,13 @@ def main():
     for x, y, guideName in annotateXys:
            plt.annotate(
               guideName, fontsize=9, ha="right", rotation_mode="anchor",
-              xy = (x, y), xytext = (0,0), 
+              xy = (x, y), xytext = (0,0),
               textcoords = 'offset points', va = 'bottom')
 
     #plt.xlabel("Spec. Score using off-targets with 3, 4 or 5 mismatches")
     plt.ylabel("Specificity Score")
     outfname = "out/specScoreMMComp"
-    plt.xlim(3.5, 5.1)
+    plt.xlim(4.5, 6.1)
     plt.ylim(0, 97)
     fig = matplotlib.pyplot.gcf()
     fig.set_size_inches(5.5, 10)

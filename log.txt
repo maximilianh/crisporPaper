@@ -93,3 +93,26 @@ cp out/specScoreMMComp.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/s
 cp out/gcSpecScores.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.pdf
 cp out/specScoreVsOtCount-MIT.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig4.pdf
 cp out/heatMap.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig5.pdf
+zless ensGene.danRer10.tab.gz | grep -v bin | cut -f2- | genePredToBed stdin ensGene.danRer10.bed
+zless ensGene.danRer10.tab.gz | grep -v bin | cut -f2- | genePredToBed stdin stdout | bedToExons stdin ensGene.exons.danRer10.bed
+bedtools closest -a effData/bed/alenaAll.bed -b locusMapping/ensGene.exonSyms.danRer10.bed  | cut -f4,10 | sed -e 's/Perrine[0-9]*/Perrine/g' | sed -e 's/Heleneg[0-9]*/Helene/g' | sed -e 's/YAPR[0-9]*/Yuvia/g' | sed -e 's/Antoine[0-9]*/Antoine/g' | sed -e 's/Angelo[0-9]*/Angelo/' | sed -e 's/\.[0-9]//' | tabUniq -s | sed -E 's/	([0-9]*)$/=\1/' | hashFlatten /dev/stdin | sed -e 's/\//;/g'
+bedtools closest -a effData/bed/morenoMateos2015.bed -b locusMapping/ensGene.exonSyms.danRer10.bed  | cut -f10 | tabUniq -rs | cut -f1 > /tmp/morenoMateos.txt
+bedtools closest -a effData/bed/alenaAll.bed -b locusMapping/ensGene.exonSyms.danRer10.bed  | cut -f4,10 | sed -e 's/Perrine[0-9]*/Perrine/g' | sed -e 's/Heleneg[0-9]*/Helene/g' | sed -e 's/YAPR[0-9]*/Yuvia/g' | sed -e 's/Antoine[0-9]*/Antoine/g' | sed -e 's/Angelo[0-9]*/Angelo/' | sed -e 's/\.[0-9]//' | tabUniq -s | sed -E 's/	([0-9]*)$/=\1/' | hashFlatten /dev/stdin | sed -e 's/\//;/g' | less
+
+# number of guide assays (not counting guides tested in two cell lines)
+less offtargets.tsv | grep on- | cut -f1 | grep -v Hap1 | grep -v Seq | sort -u | wc -l
+cp out/mitCrisporSensDiff.tsv ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppTable3.tsv
+cp out/venn-EMX1.tsv ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppTable1.tsv
+less crisporOfftargets/Tsai_EMX1.tsv  | awk '($4<=4)' | wc -l
+less mitOfftargets/Tsai_EMX1.csv | wc -l
+#
+# number of off-targets, by study
+cat offtargets.tsv | awk '($3!=0)' | grep -v on-target | grep -v name | cut -d_ -f1 | tabUniq -rs 
+cat offtargets.tsv | grep -v off-target | grep -v name | cut -d_ -f1 | tabUniq -rs 
+cat out/annotOfftargets.tsv | awk 'BEGIN {FS="\t"} ($12!="" || $15!="")' | less
+cp out/mismatchFraction-min01Perc.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig1.pdf
+
+cp out/mitCrisporSensDiff.tsv ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile1.tsv 
+convert -density 300 ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig3.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile1.png
+convert -density 200 ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.png
+#cp out/gcOtCount.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.pdf 

@@ -26,7 +26,7 @@ scoreDescs = {
     "wang" : "Wang Score2",
     "wangOrig" : "Wang Score",
     "doench" : "Doench Score",
-    "ssc" : "Xu (Wang) Score",
+    "ssc" : "Xu Score",
     "chariRaw" : "Chari Score",
     "chariRank" : "Chari Rank Score",
     "chariRaw" : "Chari Score",
@@ -34,7 +34,7 @@ scoreDescs = {
     #"finalGc2" : "Farboud-like, last 2 bp GC",
     "finalGg" : "Farboud: ends with GG",
     "myScore" : "Max Score",
-    "crisprScan" : "Morenos-Matos Score",
+    "crisprScan" : "Moreno-Matos Score",
     "fusi" : "Fusi/Doench Score",
     "drsc" : "Housden Score",
     "oof"      : "Bae Out-of-Frame Score"
@@ -50,7 +50,7 @@ scoreLabels = {
         "ssc" : "Regr Score from Xu et al. 2015",
         "fusi" : "Regr Score from Fusi/Doench et al. 2015",
         "drsc" : "Score from Housden et al. 2015",
-        "crisprScan" : "Regr Score from Morenos-Matos et al. 2015",
+        "crisprScan" : "Regr Score from Moreno-Matos et al. 2015",
         "finalGc6" : "last 6bp GC>4, Ren 2015 +/-0.25",
         "finalGg" : "last 2bp=GG , Farboud 2015 +/-0.25"
         }
@@ -79,6 +79,7 @@ datasetDescs = {
     "eschstruth": "Eschstruth Indel T7 Rank",
     "chari2015Train": "Chari Human",
     "chari2015Train293T": "Chari 293T",
+    "alenaAll": "Shkumatava Lab",
     "alenaOthers": "Shkumatava Lab: Helene/Yuvia/Antoine",
     "alenaPerrine": "Shkumatava Lab: Perrine",
     "alenaHelene": "Shkumatava Lab: Helene",
@@ -244,7 +245,7 @@ def plotLargeScale(corrFname):
 def plotSmallScale():
     # plot small-scale studies
 
-    figCount = 23
+    figCount = 17
     fig, axArr = plt.subplots(figCount, len(scoreTypes), sharey="row")
     fig.set_size_inches(len(scoreTypes)*5,figCount*4)
 
@@ -281,14 +282,15 @@ def plotSmallScale():
     #plotDataset("museumT7", axArr[9],  "Concordet\ncell type?, PPP1R12C locus\nelectrop., T7")
     #plotDataset("museumIC50", axArr[10],  "Concordet\ncells?\nelectrop., IC50 assay(name?)")
     plotDataset("schoenig", axArr[14],  "Schoenig\nK562\nLipofection (K2), bGal assay\nbGal: Wefers, PNAS 2013", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
-    plotDataset("alenaOthers", axArr[15],  "Shkumatava Lab Others\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    plotDataset("alenaPerrine", axArr[16],  "Shkumatava Lab Perreine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    plotDataset("alenaHelene", axArr[17],  "Shkumatava Lab Helene\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    plotDataset("alenaYuvia", axArr[18],  "Shkumatava Lab Yuvia\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    plotDataset("alenaAntoine", axArr[19],  "Shkumatava Lab Antoine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    plotDataset("alenaAngelo", axArr[20],  "Shkumatava Lab Angelo", yLabel="Mod. frequency", ylim=(0,100))
-    plotDataset("alenaHAP", axArr[21],  "Shkumatava: Henele/Antoine/Perrine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    plotDataset("eschstruth", axArr[22],  "Eschstruth\nZebrafish\nInjection", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
+    plotDataset("alenaAll", axArr[15],  "Shkumatava Lab\nZebrafish\nInjection", yLabel="Mod. frequency from < 20 sequenced clones", ylim=(0,100))
+    #plotDataset("alenaOthers", axArr[15],  "Shkumatava Lab Others\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    #plotDataset("alenaPerrine", axArr[16],  "Shkumatava Lab Perreine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    #plotDataset("alenaHelene", axArr[17],  "Shkumatava Lab Helene\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    #plotDataset("alenaYuvia", axArr[18],  "Shkumatava Lab Yuvia\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    #plotDataset("alenaAntoine", axArr[19],  "Shkumatava Lab Antoine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    #plotDataset("alenaAngelo", axArr[20],  "Shkumatava Lab Angelo", yLabel="Mod. frequency", ylim=(0,100))
+    #plotDataset("alenaHAP", axArr[21],  "Shkumatava: Henele/Antoine/Perrine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    plotDataset("eschstruth", axArr[16],  "Eschstruth\nZebrafish\nInjection", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
     #plotDataset("concordet2-Hs", axArr[9],  "")
     #plotDataset("concordet2-Mm", axArr[10], "mm9", "")
     #plotDataset("concordet2-Rn", axArr[11], "rn5", "")
@@ -310,7 +312,7 @@ def main():
     #"XuData/modFreq.tab" 
     #extendTabAddContext("temp.tab")
 
-    plotSmallScale()
     plotLargeScale("out/effScoreComp.tsv")
+    plotSmallScale()
 
 main()

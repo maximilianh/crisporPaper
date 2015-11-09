@@ -51,7 +51,7 @@ def getScoreTypes():
     return scoreTypes
 
 def iterTsvRows(inFile, fieldSep="\t", isGzip=False, skipLines=None, \
-        makeHeadersUnique=False, commentPrefix=None, headers=None):
+        makeHeadersUnique=False, commentPrefix="#", headers=None):
     """ 
         parses tab-sep file with headers as field names 
         yields collection.namedtuples
@@ -789,16 +789,16 @@ def parseOfftargets(fname, maxMismatches, onlyAlt, validPams):
     print "Skipped %d rows with more than %d mismatches" % (skipCount, maxMismatches)
     return otScores, guideSeqs
 
-def parseRawOfftargets(inFname, removeCellLine=True):
+def parseRawOfftargets(inFname):
     """ parse the raw list of off-targets, in the format of offtargets.tsv.
     returns list of rows and a dict guideName -> guideSeq 
     """
     targetSeqs = {}
     inRows = []
     for row in iterTsvRows(inFname):
-        if removeCellLine:
+        #if removeCellLine:
             # by removing the prefix before /, treat Kim's two cell lines as one experiment
-            study = row.name.split("_")[0].split("/")[0]
+            #study = row.name.split("_")[0].split("/")[0]
         if row.type=="on-target":
             targetSeqs[row.name] = row.seq
         else:
@@ -893,8 +893,8 @@ def parseCrispor(dirName, guideNames, maxMismatches):
                 continue
             guideName = splitext(basename(fname))[0]
             predScores[row.guideSeq][row.offtargetSeq] = float(row.offtargetScore)
-            if row.offtargetSeq=="GAATCCTAAATACTCTCCTTCGG":
-                print "XX", row.guideSeq, row.offtargetSeq
+            #if row.offtargetSeq=="GAATCCTAAATACTCTCCTTCGG":
+                #print "XX", row.guideSeq, row.offtargetSeq
             #targetSeqs[guideName] = row.guideSeq
     return predScores
 
@@ -1601,12 +1601,12 @@ def parseEffScores(datasetName):
         #scores[seq]["wang"] = scores[seq]["wang"]
 
         # stay compatible with new files where all scores all 0-100
-        if scores[seq]["doench"] > 1.0:
-            scores[seq]["doench"] = scores[seq]["doench"] / 100
-        if scores[seq]["wangOrig"] > 1.0:
-            scores[seq]["wangOrig"] = scores[seq]["wangOrig"] / 100
-        if scores[seq]["wang"] > 1.0:
-            scores[seq]["wang"] = scores[seq]["wang"] / 100
+        #if scores[seq]["doench"] > 1.0:
+            #scores[seq]["doench"] = scores[seq]["doench"] / 100
+        #if scores[seq]["wangOrig"] > 1.0:
+            #scores[seq]["wangOrig"] = scores[seq]["wangOrig"] / 100
+        #if scores[seq]["wang"] > 1.0:
+            #scores[seq]["wang"] = scores[seq]["wang"] / 100
 
         guideSeq = row.seq[:20]
         scores[seq]["finalGc6"] = int(countFinalGc(guideSeq, 6)>=4)

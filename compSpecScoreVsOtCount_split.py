@@ -151,11 +151,11 @@ def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCo
     genomeBars = axarr[1].bar(mitHistXVals+2, mitHistYVals, 3, edgecolor='white', color="green" , lw=1)
     otBars = axarr[1].bar(mitHistXVals+3+2, otCountsHistMit, 3, edgecolor='white', color="blue" , lw=1)
     axarr[1].set_ylim(0,50)
-    ylab = axarr[1].set_ylabel('Frequency of specificity', color="black")
+    ylab = axarr[1].set_ylabel('Frequency', color="black")
     axarr[1].set_yticks(range(0, 51, 10))
     axarr[1].set_xticks(range(0, 101, 10))
     axarr[1].set_yticklabels(["%d%%" % x for x in range(0, 51, 10)])
-    leg2 = axarr[1].legend( (otBars, genomeBars), ('Tested off-targets', 'Genome-wide'), loc="upper left" )
+    leg2 = axarr[1].legend( (otBars, genomeBars), ('Tested guides', 'All unique guides in human exons'), loc="upper left" )
     texts = leg2.get_texts()
     plt.setp(texts,fontsize='small')
     axarr[1].annotate('B', xy=(-.15, -.15), xycoords='axes fraction', fontsize=16,

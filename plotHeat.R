@@ -22,11 +22,14 @@ pdf("out/heatMap.pdf",    # create PNG for the heat map
 
 heatmap.2(mat_data,
   cellnote = mat_data,  # same data set for cell labels
-  #hclustfun = function(x) hclust(x,method = 'ward'),
+  #hclustfun = function(x) hclust(x),
+  #hclustfun = function(x) hclust(x,method = 'ward.D'),
+  #hclustfun = function(x) hclust(x,method = 'ward.D2'),
   #hclustfun = function(x) hclust(x,method = 'centroid'),
   #hclustfun = function(x) hclust(x,method = 'median'),
   hclustfun = function(x) hclust(x,method = 'average'),
-  #distfun = function(x) dist(x,method = 'ward'),
+  #hclustfun = function(x) hclust(x,method = 'single'),
+  #hclustfun = function(x) hclust(x,method = 'complete'),
   notecol="black",      # change font color of cell labels to black
   density.info="none",  # turns off density plot inside color legend
   trace="none",         # turns off trace lines inside the heat map

@@ -69,7 +69,7 @@ def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
         countPerc = (100.0*float(count)/totalCount)
         #avgHitCount = mmAllCount[mmCount] / len(guideNames)
         hitCount = mmAllCount[mmCount]
-        label = "%s mismatches:    \n%d genome hits\n%d actual offtargets (%0.1f %%)" % \
+        label = "%s mismatches:    \n%d genome hits\n%d / 213 offtargets (%0.1f %%)" % \
             (mmCount, hitCount, count, countPerc)
         #labels.append(str(mmCount)+" mismatches: \n"+str(count)+" offtargets (%0.1f %%)" % countPerc)
         labels.append(label)
@@ -95,7 +95,9 @@ def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
         #study = study.split("/")[0]
         studyNames.append(study)
         i+=1
-    #plt.xticks(range(1,maxMM), labels)
+    xLabels = ["%d%%" % int(100*x) for x in np.arange(0, 0.31, 0.05)]
+    print xLabels
+    plt.xticks(np.arange(0, 0.31, 0.05), xLabels)
     plt.yticks(range(maxMM,0,-1), labels)
     #plt.title("Off-target cleavage by number of mismatches")
     #plt.ylim((0,0.30))
@@ -106,8 +108,8 @@ def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
         ax.axhline(y=float(yGrid)+0.5, ls=":", linewidth=0.2, color="black")
     #plt.ylabel("Fraction of off-targets with indels")
     label = "Modification frequency"
-    if minFrac!=0.0:
-        label += " > %0.2f%%" % (100*minFrac)
+    #if minFrac!=0.0:
+        #label += " > %0.2f%%" % (100*minFrac)
     plt.xlabel(label)
 
     plt.legend(figs,

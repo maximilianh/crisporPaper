@@ -32,15 +32,32 @@ Each script creates a tab-sep file and/or a plot in PNG and PDF format.
 The scripts have to be run in this order:
 
 filtAnnotateOfftargets.py: creates SUPPL FILE 1 out/annotOfftargets.tsv from offtargets.tsv
-   Creates out/offtargetsFilt.tsv, a filtered version of offtargets.tsv
-   Creates out/annotFiltOfftargets.tsv with 413 filtered off-targets.
-   Prints a few basic stats to stdout.
+   Creates out/annotOfftargets.tsv, a version of offtargets.tsv with more 
+   annotations, like spec. score, mismatch count, etc
 
-plotGcOtRatio.py: scatter plot of on/off-target ratio vs GC content. Creates FIGURE 1.
+   Creates out/offtargetsFilt.tsv, a filtered version of offtargets.tsv
+   offtargetsFilt.tsv has all the two GC-rich guides removed and all 
+   off-targets < 0.01% also removed.
+   This file does contain guides that have no off-targets > 0.01%.
+
+   The script also creates out/annotFiltOfftargets.tsv with 413 filtered off-targets.
+   The file has guides without any off-targets removed.
+
+  697 offtargets, 36 guides
+  wrote out/annotOfftargets.tsv, 697 rows
+  removed these guides: Tsai_HEK293_sgRNA4,Tsai_VEGFA_site2
+  kept 34 guide names (->tests of identical guides in diff. cells)
+  kept 28 different guide sequences
+  kept 447 off-targets
+  output written to out/offtargetsFilt.tsv
+  413 offtargets, 34 guides
+  wrote out/annotFiltOfftargets.tsv, 413 rows
+
+plotGcOtRatio.py: scatter plot of on/off-target ratio vs GC content. 
+        Creates SUPPL FIGURE 1.
         Output: 
 
 plotGcSpecScore.py: scatter plot GC content vs specificity score.
-        Creates SUPPL FIGURE S1
         Output: out/gcSpecScores.pdf
 
 plotVenn.py: Creates out/venn.pdf
@@ -54,24 +71,25 @@ plotGuideMismatchCount.py: Creates out/specScoreMMComp.pdf
         cropitOfftargets/ and mitOfftargets/.
 
 plotMismatchFraction.py : creates a plot off-target strength versus mismatch count
-        = FIGURE 2 
+        = FIGURE 1 
         Input: out/offtargetsFilt.tsv and the files in crisporOfftargets/
         Output: out/out/mismatchFraction-all.pdf
 
 plotRoc.py: create ROC plot 
-        = FIGURE 3
+        = FIGURE 2
         Input: the files in crisporOfftargets, mitOfftargets and cropitOfftargets
         Output: out/roc.pdf
 
 compareOfftargetTools.py: 
         Creates a table with MIT versus CRispor versus CassOffFinder.
+        = Supplemental Table 2
         Input: the files in crisporOfftargets/, casOffOfftargets/ and mitOfftargets/
         Output: out/mitCrisporSensDiff.tsv
 
 compSpecScoreVsOtCount_split.py:
         Creates a scatterplot that shows specificity score histogram, off-target frequency
         and off-target count, 
-        = SUPPL FIG S4 and FIGURE 4
+        = SUPPL FIG S4 and FIGURE 3
         Output: out/specScoreVsOtCount-CRISPOR.pdf and out/specScoreVsOtCount-MIT.pdf
         The version of the script without _split.py is an older version that
         overlays both diagrams into a single figure which didn't pass 
@@ -122,10 +140,11 @@ plotHeat.R:
         Creates the heatmap of spearman correlations 
         Input: out/effScoreComp.tsv
         Output: out/heatData.tsv and out/heatMap.pdf
-        = FIGURE 5
+        = FIGURE 4
+        This is an R script!
         Has to be run with "Rscript plotHeat.R" unlike all other scripts.
 
-scoreCutoffs.py:
+scoreCutoffs.py
         obtain the 75 percentiles from the scores and print to stdout.
         Has been manually copied already into binClass.py
 
@@ -138,10 +157,18 @@ binClass.py
         Output: out/binClassMetrics.tsv, with precision, recall and f1 
         values for every combination of score and dataset.
 
+monteCarloAlena.py
+monteCarloSchoenig.py
+        Calculate P-Values to obtain a certain result from the Schoenig 
+        or Alena (="Shkumatava") datasets. 
+        Input: effData/alenaAll.scores.tab or effData/schoenig.scores.tab
+        Output: To stdout
+
 compRelativeScores.py: pick out pairs of guides on the same gene and compare efficiency scores for them
 simulate.py: pick 2,3,4 guides and determine how if one gave a better result than X percent in the experiment.
         repeat 1000 times and give percentage. Also try using only guides with higher than 0.1-1.0 efficiency
         scores.
+
 compareTools.py: for each guide, get recall, sens, spec for CRISPOR and MIT
 compareMitCrisporSpecScore.py: compare the MIT with the CRISPOR specificity
         score. CRISPOR uses the same formula but a more sensitive aligner, so

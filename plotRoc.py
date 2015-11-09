@@ -17,7 +17,8 @@ maxMismatches = 4
 validPams = ["GG", "GA", "AG"]
 
 # only look at alternative PAMs, can be used to determine best cutoff for the alternative PAMs
-onlyAlt = True
+#onlyAlt = True
+onlyAlt = False
 
 if len(sys.argv)>1:
     altPamCutoff = float(sys.argv[1])
@@ -93,7 +94,7 @@ def main():
     guideValidOts, guideSeqs = parseOfftargets("out/annotFiltOfftargets.tsv", maxMismatches, onlyAlt, validPams)
     crisporPredOts = parseCrispor("crisporOfftargets", guideSeqs, maxMismatches)
     mitPredOts = parseMit("mitOfftargets", guideSeqs)
-    cropitPredOts = parseCropit("cropitOfftargets", guideSeqs)
+    #cropitPredOts = parseCropit("cropitOfftargets", guideSeqs)
 
     plots = []
     labels = []
@@ -120,7 +121,7 @@ def main():
 
     #colors = ["black", "blue", "green"]
     #styles = ["--", "--", "--"]
-    plots, labels = plotRoc("CROP-IT", crisporScores, validOffts, cropitPredOts, colors, styles, plots, labels, isCropit=True)
+    #plots, labels = plotRoc("CROP-IT", crisporScores, validOffts, cropitPredOts, colors, styles, plots, labels, isCropit=True)
 
     plt.legend(plots,
            labels,

@@ -33,7 +33,8 @@ evalSets = ["farboud2015", "ren2015", "gagnon2014", "varshney2015"]
 trainSets = ["gagnon2014"]
 
 # datasets to apply dec tree classifier on
-testSets = ["schoenig", "xu2015TrainHl60", "chari2015Train", "eschstruth", "varshney2015", "ren2015", "farboud2015", "doench2014-Hs", "housden2015", "morenoMateos2015", "shkumatava"]
+testSets = ["schoenig", "xu2015TrainHl60", "chari2015Train", "eschstruth", "varshney2015", "ren2015", "farboud2015", "doench2014-Hs", "housden2015", "morenoMateos2015", "alenaAll"]
+#testSets = ["eschstruth"]
 # removed:"museumIC50", 
 # removed: "xu2015FOX-AR", "xu2015AAVS1", 'chari2015Valid_293T', 
 testSets.extend(trainSets)
@@ -201,6 +202,8 @@ def evalAllScores_takeBestX(datasetName, seqs, labels):
     typeEval = {}
     #scoreTypes = ('doench', 'svm', 'chariRank', 'ssc')
     scoreTypes = getScoreTypes()
+    scoreTypes.append("finalGc6")
+    scoreTypes.append("finalGg")
 
     for scoreType in scoreTypes:
         # first create a list (seq, score) 
@@ -233,7 +236,9 @@ def evalAllScores_75Perc(datasetName, seqs, labels):
     " create rec/prec/f1 for all main scores, defining TP as 'over the 75 percentile' "
     # run scoreCutoffs.py to get these
     #cutoffs = {'doench': 0.32398638678651903, 'wangOrig': 0.77276957430125004, 'chariRank': 79.365247038449994, 'ssc': 0.41655549999999997, "crisprScan" :0.61, "fusi":0.62}
-    cutoffs = {'oof': 68.0, 'wang': 0.7466315, 'drsc': 6.83643, 'finalGg': 0.0, 'wangOrig': 0.77927021985800005, 'chariRaw': 0.53029115000000004, 'finalGc6': 1.0, 'chariRank': 79.0, 'mh': 5447.0, 'doench': 32.0, 'crisprScan': 60.0, 'ssc': 0.420796, 'fusi': 0.62621093132700001}
+    #cutoffs = {'oof': 68.0, 'wang': 0.7466315, 'drsc': 6.83643, 'finalGg': 0.0, 'wangOrig': 0.77927021985800005, 'chariRaw': 0.53029115000000004, 'finalGc6': 1.0, 'chariRank': 79.0, 'mh': 5447.0, 'doench': 32.0, 'crisprScan': 60.0, 'ssc': 0.420796, 'fusi': 0.62621093132700001}
+    cutoffs = {'oof': 68.0, 'wang': 0.76407499999999995, 'drsc': 6.8228999999999997, 'finalGg': 0.0, 'wangOrig': 0.78028833768625006, 'chariRaw': 0.52830615000000003, 'finalGc6': 1.0, 'chariRank': 79.0, 'mh': 5424.25, 'doench': 33.0, 'crisprScan': 60.0, 'ssc': 0.41735925000000001, 'fusi': 0.62641138794899998}
+
 
     #shortToLong = map23To34()
     #longSeqs = [shortToLong[s] for s in seqs]
@@ -255,7 +260,6 @@ def evalAllScores_75Perc(datasetName, seqs, labels):
         for seq in seqs:
             scoreDict = seqScores[seq]
             score = scoreDict[scoreType]
-            #print scoreType, score, cutoff
             if score > cutoff:
                 predLabels.append(1)
             else:
@@ -264,8 +268,8 @@ def evalAllScores_75Perc(datasetName, seqs, labels):
     return typeEval
 
 def evalClassifiers(testSets):
-    """ get recall, precision, f1 for a list of classifiers. Also get these metrics for 
-    for efficiency scores (doench, etc) and the two heuristics
+    """ get recall, precision, f1 for a list of classifiers. Also get these
+    metrics for for efficiency scores (doench, etc) and the two heuristics
     """
     rows = []
     for dataset in testSets:
@@ -287,10 +291,13 @@ def evalClassifiers(testSets):
         #rows.append(row)
 
         # add the metrics for all efficiency scores
-        #scoreTypeEvals = evalAllScores_takeBestX(dataset, seqs, labels)
-        scoreTypeEvals = evalAllScores_75Perc(dataset, seqs, labels)
-        for scoreType, (predCount, rec, prec, f1) in scoreTypeEvals.iteritems():
-            row = [scoreType, dataset, dataSize, posCount, predCount, rec, prec, f1]
+        scoreTypeEvalsBestX = evalAllScores_takeBestX(dataset, seqs, labels)
+        scoreTypeEvalsGt75 = evalAllScores_75Perc(dataset, seqs, labels)
+        for scoreType, (predCount, rec, prec, f1) in scoreTypeEvalsGt75.iteritems():
+            bestXPredCount, bestXRec, bestXPrec, bestXF1 = scoreTypeEvalsBestX[scoreType]
+            #assert(bestXPredCount==predCount)
+            assert(bestXRec==bestXPrec)
+            row = [scoreType, dataset, dataSize, posCount, predCount, rec, prec, f1, bestXPredCount, bestXPrec]
             rows.append(row)
     return rows
 
@@ -301,7 +308,7 @@ def main():
     #classifiers = trainClassifiers(trainSets)
     #classifiers = {}
 
-    headers = ["classifierName", "dataset", "size", "posCount", "predCount", "recall", "precision", "f1"]
+    headers = ["classifierName", "dataset", "size", "posCount", "predCount", "recall", "precision", "f1", "bestXPredCount", "bestXAcc"]
     ofh.write ( "\t".join(headers)+"\n")
 
     rows = evalClassifiers(testSets)
