@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from os.path import basename, splitext, isfile
 from sklearn.metrics import roc_curve, auc
 
+import crisporOtScores
+
 # we only look at off-targets with a certain number of mismatches
 # otherwise the ROC curve would not go up to 1.0 as MIT can only search for 4 MMs
 maxMismatches = 4
@@ -15,6 +17,7 @@ maxMismatches = 4
 # assuming that no software can find the relatively rare PAM sites
 # that are not GG/GA/AG
 validPams = ["GG", "GA", "AG"]
+#validPams = ["GG"]
 
 # only look at alternative PAMs, can be used to determine best cutoff for the alternative PAMs
 #onlyAlt = True
@@ -43,14 +46,15 @@ def parseCropit(inDir, guideSeqs):
             data[guideSeq][otSeq]=float(score)
     return data
 
-def plotRoc(prefix, allOts, expFreqs, predScores, colors, styles, plots, labels, isCropit=False):
+def plotRoc(prefix, allOts, expFreqs, predScores, colors, styles, plots, labels, isCropit=False, fracs=[0.0], legLabels=[""]):
     " plot ROC curve and write annotation to ofh file "
     print "plotting ROC for %s" % prefix
     i= 0
     maxSens = 0
-    fracList = [0.01, 0.001]
+    #fracList = [0.01, 0.001]
+    #fracList = [0.00]
 
-    for minFrac in fracList:
+    for label, minFrac in zip(legLabels, fracs):
         yVals = []
         yTrue = []
         #for guideSeq, guideSeqFreqs in guideValidOts.iteritems():
@@ -72,8 +76,11 @@ def plotRoc(prefix, allOts, expFreqs, predScores, colors, styles, plots, labels,
             for f, t, score in zip(fpr, tpr, thresholds):
                 print minFrac, f, t, score
         roc_auc = auc(fpr, tpr)
-        if minFrac == 0.0:
-            plotLabel = prefix+", no freq. limit (%d off-targets)" % (len(yTrue))
+        print "AUC=%f" % roc_auc
+        if label!="":
+            plotLabel = label + ", AUC %0.2f" % roc_auc
+        elif minFrac == 0.0:
+            plotLabel = prefix + ", AUC %0.2f" % roc_auc
         else:
             plotLabel = prefix+", mod. freq. > %0.1f%%: AUC %0.2f" % ((minFrac*100), roc_auc)
         p, = plt.plot(fpr, tpr, ls=styles[i], color=colors[i]) # NB: keep the comma!
@@ -90,34 +97,97 @@ def collapseDicts(predOts):
             ret[otSeq] = otScore
     return ret
 
+def compHsuMit(guideValidOts, guideSeqs, outFname):
+    " calc MIT and hsu OT scores and write to outfname "
+    ofh = open(outFname, "w")
+    ofh.write("\t".join(["guide", "offt", "modFreq", "MIT", "hsu"])+"\n")
+    for guideSeq, otFreqs in guideValidOts.iteritems():
+        for otSeq, otFreq in otFreqs.iteritems():
+            mitScore = crisporOtScores.calcMitScore(guideSeq, otSeq)
+            hsuScore = crisporOtScores.calcHsuSuppScore2(guideSeq, otSeq)
+            row = [guideSeq, otSeq, otFreq, mitScore, hsuScore]
+            row = [str(x) for x in row]
+            ofh.write("\t".join(row)+"\n")
+    print "wrote %s" % ofh.name
+
+        
 def main():
     guideValidOts, guideSeqs = parseOfftargets("out/annotFiltOfftargets.tsv", maxMismatches, onlyAlt, validPams)
-    crisporPredOts = parseCrispor("crisporOfftargets", guideSeqs, maxMismatches)
+
+    tmpFname = "/tmp/crisporOffs.pickle"
+
     mitPredOts = parseMit("mitOfftargets", guideSeqs)
+
+    compHsuMit(guideValidOts, guideSeqs, "out/hsuVsMit.tsv")
+
+    if isfile(tmpFname):
+        print "reading offtargets from %s" % tmpFname
+        crisporPredOts = pickle.load(open(tmpFname))
+    else:
+        crisporPredOts = parseCrispor("crisporOfftargets", guideSeqs, maxMismatches)
+        pickle.dump(crisporPredOts, open(tmpFname, "w"))
+        print "Wrote offtargets to %s" % tmpFname
+
     #cropitPredOts = parseCropit("cropitOfftargets", guideSeqs)
 
     plots = []
     labels = []
 
-    colors = ["black", "blue", "green"]
-    styles = ["-", "-", "-"]
-
     plt.figure(figsize=(7,7))
     #dataName = "filtered BWA"
-    dataName = "CRISPOR"
+
+    colors = ["darkblue", "red"]
+    styles = ["-", "-", ":"]
+    dataName = "MIT score"
     crisporScores = collapseDicts(crisporPredOts)
     validOffts = collapseDicts(guideValidOts)
-    plots, labels = plotRoc(dataName, crisporScores, validOffts, crisporScores, colors, styles, plots, labels)
+    plots, labels = plotRoc(dataName, crisporScores, validOffts, crisporScores, colors, styles, plots, labels, fracs=[0.0, 0.01], legLabels=["MIT score", "MIT score (freq. > 1%)"])
     if not onlyAlt:
-        plt.annotate('TPR = 0.96:\nofft. score = 0.1', xy=(0.588221664414, 0.9640), xytext=(0.4, .84),
-                arrowprops=dict(facecolor='black', arrowstyle="->"))
+        #plt.annotate('True Pos. Rate = 0.96:\nMIT score = 0.1', xy=(0.588221664414, 0.9640), xytext=(0.4, .84),
+        plt.annotate('True Pos. Rate = 1.0 / 0.96:\nMIT score = 0.1', xy=(0.588221664414, 0.9650), xytext=(0.5, 1.04),
+                arrowprops=dict(facecolor='black', arrowstyle="->"), annotation_clip=False)
+        plt.annotate('True Pos. Rate = 1.0 / 0.96:\nMIT score = 0.1', xy=(0.588221664414, 1.0), xytext=(0.5, 1.04),
+                arrowprops=dict(facecolor='black', arrowstyle="->"), annotation_clip=False)
+
+    colors = ["blue", "green"]
+    styles = ["-", ":", ":"]
+    mitScores = collapseDicts(mitPredOts)
+    plots, labels = plotRoc("MIT Website", crisporScores, validOffts, mitScores, colors, styles, plots, labels)
+
     #plt.annotate('offt. score = ?', xy=(0.8, 1.0), xytext=(0.7, .84),
+
                 #arrowprops=dict(facecolor='black', arrowstyle="->"))
 
-    colors = ["black", "blue", "green"]
-    styles = [":", ":", ":"]
-    mitScores = collapseDicts(mitPredOts)
-    plots, labels = plotRoc("MIT", crisporScores, validOffts, mitScores, colors, styles, plots, labels)
+    #colors = ["black"]
+    #styles = ["-", "-", "-"]
+    #cfdPredOts = calcOtScores(crisporPredOts, calcCfdScore)
+    #cfdScores = collapseDicts(cfdPredOts)
+    #plots, labels = plotRoc("CFD score", cfdScores, validOffts, cfdScores, colors, styles, plots, labels)
+
+    cropitScores = collapseDicts(calcOtScores(crisporPredOts, calcCropitScore))
+    styles = ["-.", "-."]
+    colors = ["red"]
+    plots, labels = plotRoc("Cropit score", cropitScores, validOffts, cropitScores, colors, styles, plots, labels)
+
+    ccTopPredOts = calcOtScores(crisporPredOts, calcCcTopScore)
+    ccTopScores = collapseDicts(ccTopPredOts)
+    styles = ["--", "--"]
+    colors = ["green"]
+    plots, labels = plotRoc("CCTop score", ccTopScores, validOffts, ccTopScores, colors, styles, plots, labels)
+
+
+    hsuScores = collapseDicts(calcOtScores(crisporPredOts, crisporOtScores.calcHsuSuppScore2))
+    styles = ["--", "--"]
+    colors = ["grey"]
+    plots, labels = plotRoc("Hsu score", hsuScores, validOffts, hsuScores, colors, styles, plots, labels)
+
+    #for strat in ["raw", "all", "none", "row", "col", "onlyAvgs", "avgs", "none_Sum", "none_allSum", "limit"]:
+        #print "Hsu normalisation: %s" % strat
+        #crisporOtScores.loadHsuMat(strat)
+        #hsuScores = collapseDicts(calcOtScores(crisporPredOts, crisporOtScores.calcHsuSuppScore))
+        #styles = ["-", "-"]
+        #plots, labels = plotRoc("Hsu score", hsuScores, validOffts, hsuScores, colors, styles, plots, labels)
+
 
     #colors = ["black", "blue", "green"]
     #styles = ["--", "--", "--"]

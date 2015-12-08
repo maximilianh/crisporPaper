@@ -23,11 +23,11 @@ def indexByMm(offDict, guideNames):
     for guideSeq, offs in offDict.iteritems():
 
         if guideSeq not in guideNames:
-            print "skipping guide %s, not analyzed" % (guideSeq)
+            print "skipping guide %s, %d offs, not analyzed" % (guideSeq, len(offs))
             continue
         guideName = guideNames[guideSeq]
         if guideName in skipGuides:
-            print "skipping guide %s, to avoid revComp problems" % guideName
+            print "skipping guide %s, %d offs, to avoid revComp problems" % (guideName, len(offs))
             continue
 
         for otSeq in offs:

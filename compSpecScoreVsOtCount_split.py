@@ -49,7 +49,8 @@ def splitXyzVals(xVals, yVals, zVals, zCutoff):
             z1.append(z)
     return (x1, y1, np.array(z1)), (x2, y2, np.array(z2))
             
-def makePlot(ax, xVals, yVals, areas):
+def makeBubblePlot(ax, xVals, yVals, areas):
+    " scatter plot with bubbles "
 
     (highX, highY, highZ), (lowX, lowY, lowZ) = splitXyzVals(xVals, yVals, areas, 0.005)
 
@@ -136,8 +137,7 @@ def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCo
 
     # left subplot: scatter plot with bubble sizes
     f.set_size_inches(10,4)
-    #f.subplots_adjust(top=0.10) # or whatever
-    leg1 = makePlot(axarr[0], xValsMit, yValsWeak, areas)
+    leg1 = makeBubblePlot(axarr[0], xValsMit, yValsWeak, areas)
     xlab = axarr[0].set_xlabel("%s Guide Specificity Score" % suffix)
     axarr[0].set_ylabel("Off-targets found per guide", color="black")
     axarr[0].set_xlim(0, 91)
@@ -150,9 +150,12 @@ def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCo
     mitHistXVals = np.array(mitHistXVals)
     genomeBars = axarr[1].bar(mitHistXVals+2, mitHistYVals, 3, edgecolor='white', color="green" , lw=1)
     otBars = axarr[1].bar(mitHistXVals+3+2, otCountsHistMit, 3, edgecolor='white', color="blue" , lw=1)
-    axarr[1].set_ylim(0,50)
+    YMAX=45
+    if suffix=="MIT":
+        YMAX=55
+    axarr[1].set_ylim(0,YMAX)
     ylab = axarr[1].set_ylabel('Frequency', color="black")
-    axarr[1].set_yticks(range(0, 51, 10))
+    axarr[1].set_yticks(range(0, YMAX, 10))
     axarr[1].set_xticks(range(0, 101, 10))
     axarr[1].set_yticklabels(["%d%%" % x for x in range(0, 51, 10)])
     leg2 = axarr[1].legend( (otBars, genomeBars), ('Tested guides', 'All unique guides in human exons'), loc="upper left" )
@@ -171,10 +174,10 @@ def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCo
     plt.close()
 def main():
     maxMismatches = 4
-    guideValidOts, guideSeqs = parseOfftargets("out/annotFiltOfftargets.tsv", maxMismatches, False, None)
+    guideValidOts, guideSeqs = parseOfftargets("out/annotOfftargets.tsv", maxMismatches, False, None)
 
     # get sum of off-target frequencies
-    strongOtCounts, weakOtCounts, otShareSum = parseOtCounts("out/annotFiltOfftargets.tsv")
+    strongOtCounts, weakOtCounts, otShareSum = parseOtCounts("out/annotOfftargets.tsv")
 
     crisporHistXVals, crisporHistYVals = parseSpecScores("wholeGenome/specScores.tab", "/tmp/crisporCache.pickle")
     mitHistXVals, mitHistYVals = parseSpecScores("seleniumMit/seqScores.txt", "/tmp/mitCache.pickle")
@@ -227,10 +230,11 @@ def main():
 
     # transform to frequencies in %
     otCountsHistMit = [100*x / float(len(guideSeqs)) for x in otCountsHistMit]
-    assert(sum(otCountsHistMit)==100)
+    assert(sum(otCountsHistMit)-100.0<0.01)
 
     otCountsHistCrispor = [100*x / float(len(guideSeqs)) for x in otCountsHistCrispor]
-    assert(sum(otCountsHistCrispor)==100)
+    print otCountsHistCrispor
+    assert(sum(otCountsHistCrispor)-100<0.01)
 
     for row in rows:
         ofh.write( "\t".join(row)+'\n')

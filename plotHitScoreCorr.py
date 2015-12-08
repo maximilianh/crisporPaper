@@ -13,6 +13,8 @@ from scipy.stats import linregress
 from scipy.stats import pearsonr, spearmanr
 import matplotlib.pyplot as plt
 
+import crisporOtScores
+
 # add guide names to scatter dots?
 doLabels = False
 
@@ -28,9 +30,10 @@ def parseHsuSkipped():
         readCount = int(readCount)
         if readCount < 10000:
             seqs.append(seq)
+    print "Found %d Hsu seqs that will be skipped" % len(seqs)
     return seqs
 
-def plotScat(ax, otData, onlyStudies=None, onlyRank=False, suppScore=False):
+def plotScat(ax, otData, onlyStudies=None, onlyRank=False, scoreName="mit"):
     xVals, yVals = [], []
     figs = []
     markers = itertools.cycle(["*", "+", "o", "x", "^"])
@@ -45,13 +48,26 @@ def plotScat(ax, otData, onlyStudies=None, onlyRank=False, suppScore=False):
             continue
         #print "processing guide", guideName
         for otSeq, otFreq in otSeqs.iteritems():
+            if "-" in otSeq:
+                #print "OT-Gap: skipping %s / %s " % (guideName, otSeq)
+                continue
+
             if otSeq in skipSeqs:
                 continue
 
-            if suppScore:
-                hitScore = calcHsuSuppScore(guideSeq[1:-3], otSeq[1:-3])
-            else:
+            if scoreName=="hsuSupp":
+                #hitScore = calcHsuSuppScore(guideSeq[1:-3], otSeq[1:-3])
+                hitScore = crisporOtScores.calcHsuSuppScore(guideSeq, otSeq, strat="col")
+                #print "running Hsu with %s=%s and %s" % (guideName, guideSeq, otSeq)
+                #hitScore = crisporOtScores.calcRawHsu(guideSeq, otSeq)
+                #hitScore = crisporOtScores.calcHsuSuppScore2(guideSeq, otSeq)
+            elif scoreName=="mit":
                 hitScore = calcHitScore(guideSeq, otSeq)
+            elif scoreName=="cfd":
+                hitScore = calcCfdScore(guideSeq, otSeq)
+            else:
+                print scoreName
+                assert(False)
             #print hitScore, guideSeq, otSeq
             xVals.append(hitScore)
             yVals.append(otFreq)
@@ -87,43 +103,57 @@ def plotScat(ax, otData, onlyStudies=None, onlyRank=False, suppScore=False):
            #loc='upper right',
            #ncol=3,
            #fontsize=10)
-    ax.set_xlabel("Predicted cleavage (rank)")
-    ax.set_ylabel("Observed cleavage (rank)")
-    #ax.xlim( (0,20) )
-    #ax.ylim( (0,0.4) )
     if onlyRank:
+        ax.set_xlabel("Predicted cleavage (rank)")
+        ax.set_ylabel("Observed cleavage (rank)")
         ax.set_xlim((0, 50))
         ax.set_ylim((0, 50))
+    else:
+        ax.set_xlabel("Predicted cleavage score")
+        ax.set_ylabel("Modif. frequency")
+        #ax.set_xlim( (0,1.0) )
+        #ax.set_ylim( (0,0.3) )
 
     # x = scipy.array([-0.65499887,  2.34644428, 3.0])
     # y = scipy.array([-1.46049758,  3.86537321, 21.0])
     r_row, pearP = pearsonr(xVals, yVals)
     rho, spearP = spearmanr(xVals, yVals)
-    print "Pearson: r %f, p-Val %f Spearman: rho %f, p-Val %f" % (r_row, pearP, rho, spearP)
+    print "score %s: Pearson: r %f, p-Val %f Spearman: rho %f, p-Val %f" % (scoreName, r_row, pearP, rho, spearP)
 
 def main():
 
     #guideOffSeqs = parseOfftargetsWithNames("hsu2013/hsuSingle.tab", 10, False, None)
     #plotScat(guideOffSeqs, "out/hitScoreCorr-hsuSingle.pdf")
 
-    fig, axArr = plt.subplots(4,1)
-    guideOffSeqs = parseOfftargetsWithNames("out/annotFiltOfftargets.tsv", 10, False, None)
+    fig, axArr = plt.subplots(5,1)
+    fname = "out/annotOfftargets.tsv"
+    #fname = "out/annotOfftargets.tsv"
+    guideOffSeqs = parseOfftargetsWithNames(fname, 10, False, None)
     onlyRank = True
     axArr[0].set_title("Hsu only, MIT score")
 
     global skipSeqs
     skipSeqs = set(parseHsuSkipped())
 
-    plotScat(axArr[0], guideOffSeqs, onlyStudies=["Hsu"], onlyRank=onlyRank)
+    #plotScat(axArr[0], guideOffSeqs, onlyStudies=["Hsu"], onlyRank=onlyRank)
 
-    axArr[1].set_title("Hsu only, Hsu Supp score")
-    plotScat(axArr[1], guideOffSeqs, onlyStudies=["Hsu"], onlyRank=onlyRank, suppScore=True)
+    axArr[0].set_title("Hsu only, Hsu Supp score")
+    plotScat(axArr[0], guideOffSeqs, onlyStudies=["Hsu"], onlyRank=onlyRank, scoreName="hsuSupp")
 
-    axArr[2].set_title("All off-targets, MIT score")
-    plotScat(axArr[2], guideOffSeqs, onlyStudies=None, onlyRank=onlyRank)
+    axArr[1].set_title("Hsu only, MIT score")
+    plotScat(axArr[1], guideOffSeqs, onlyStudies=["Hsu"], onlyRank=onlyRank, scoreName="mit")
 
-    axArr[3].set_title("All off-targets, Hsu Supp score")
-    plotScat(axArr[3], guideOffSeqs, onlyStudies=None, onlyRank=onlyRank, suppScore=True)
+    axArr[2].set_title("Hsu only, Cfd score")
+    plotScat(axArr[2], guideOffSeqs, onlyStudies=["Hsu"], onlyRank=onlyRank, scoreName="cfd")
+
+    #axArr[2].set_title("All off-targets, Hsu Supp score")
+    #plotScat(axArr[2], guideOffSeqs, onlyStudies=None, onlyRank=onlyRank, scoreName="hsuSupp")
+
+    #axArr[3].set_title("All off-targets, MIT score")
+    #plotScat(axArr[3], guideOffSeqs, onlyStudies=None, onlyRank=onlyRank, scoreName="mit")
+
+    #axArr[4].set_title("All off-targets, CFD score")
+    #plotScat(axArr[4], guideOffSeqs, onlyStudies=None, onlyRank=onlyRank, scoreName="cfd")
 
     outPdfName = "out/hitScoreCorr-allFilt.pdf"
     fig.set_size_inches(5,15)

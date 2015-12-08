@@ -2,6 +2,7 @@ from annotateOffs import *
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors
 
 from os.path import isfile, join
 import logging
@@ -79,18 +80,23 @@ def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
             xVals[study].append(mmCount)
             yVals[study].append(otScore)
 
-    colors = ["green", "blue", "black", "yellow", "red", "grey", "orange", "violet"]
-    markers = ["o", "s", "+", ">", "<", "^", "x", "+"]
+    colors = ["green", "orange", "black", "indigo", "red", "grey", "black", "black"]
+    markers = ["o", "s", "v", ">", "<", "^", "+", "x"]
     studyNames = []
+
+    studies = xVals.keys()
+    studies.sort(reverse=True)
 
     i=0
     figs= []
-    for study, sXVals in xVals.iteritems():
+    for study in studies:
+        sXVals = xVals[study]
         xYVals = yVals[study]
         sXVals = [x - 0.3 + (0.1)*i for x in sXVals]
         sXVals, xYVals = xYVals, sXVals
         # linewidth=0 makes circles disappear
-        fig = plt.scatter(sXVals, xYVals, alpha=0.4, marker=markers[i], color=colors[i], s=20, edgecolor=colors[i])
+        edgecol = matplotlib.colors.ColorConverter().to_rgba(colors[i], alpha=0.5)
+        fig = plt.scatter(sXVals, xYVals, alpha=0.5, marker=markers[i], color=colors[i], s=25, edgecolor=edgecol)
         figs.append(fig)
         #study = study.split("/")[0]
         studyNames.append(study)
@@ -102,6 +108,9 @@ def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
     #plt.title("Off-target cleavage by number of mismatches")
     #plt.ylim((0,0.30))
     ax = plt.gca()
+    #for tic in ax.xaxis.get_major_ticks():
+        #tic.tick1On = tic.tick2On = False
+    ax.yaxis.set_tick_params(width=0)
     plt.xlim((0.00,0.30))
     plt.ylim((0.5,6.5))
     for yGrid in range(1,6):
@@ -112,8 +121,8 @@ def plotFractions(fractions, mmAllCount, minFrac, baseOutName):
         #label += " > %0.2f%%" % (100*minFrac)
     plt.xlabel(label)
 
-    plt.legend(figs,
-           studyNames,
+    plt.legend(reversed(figs),
+           reversed(studyNames),
            scatterpoints=1,
            loc='upper right',
            ncol=3,

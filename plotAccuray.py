@@ -9,7 +9,7 @@ from annotateOffs import *
 from collections import defaultdict
 import random
 
-scoreNames = ['doench', 'ssc', 'crisprScan', 'wangOrig', 'chariRank', 'fusi', "drsc", 'finalGc6', 'finalGg', "wuCrispr"]
+scoreNames = ['doench', 'ssc', 'crisprScan', 'wangOrig', 'chariRank', 'fusi', "drsc", 'finalGc6', 'finalGg']
 # doench = regression
 # ssc = regression
 # crisprScan = regression
@@ -18,7 +18,7 @@ scoreNames = ['doench', 'ssc', 'crisprScan', 'wangOrig', 'chariRank', 'fusi', "d
 
 dataDescs = {
      'varshney2015': "Varshney Zebrafish",
-     'ren2015': "Ren Drosophila Training",
+     'ren2015': "Ren Drosophila",
      'xu2015TrainHl60': "Wang/Xu KO Training",
      'gagnon2014': "Gagnon Zebrafish",
      'chari2015Train':"Chari Training",
@@ -28,7 +28,7 @@ dataDescs = {
      'xu2015AAVS1': "Xu Validation AAVS1",
      'xu2015FOX-AR': "Xu Validation FOX/AR",
      'schoenig': u'Sch\u00F6nig LacZ',
-     'farboud2015' : "Farboud C.elegans Training",
+     'farboud2015' : "Farboud C.elegans",
      'eschstruth' : "Eschstruth Zebrafish        ",
      'morenoMateos2015' : "CrisprScan Training",
      'alenaAll' : "Shkumatava Dataset",
@@ -50,7 +50,7 @@ dataSubs = {
      'farboud2015' : ("Zebrafish", "Injection", "Sequencing"),
      'eschstruth' : ("Zebrafish", "Injection", "T7"),
      'morenoMateos2015' : ("Zebrafish", "Injection", "Sequencing"),
-     'alenaAll' : ("Zebrafish", "Injection", "Sanger Seq"),
+     'alenaAll' : ("Zebrafish", "Injection", "Sanger Seq."),
      'housden2015' : ("Dros. S2R+", "Transfection", "Lucif.")
     }
 topDatasets = [
@@ -83,17 +83,16 @@ scoreDescs = {
     "doench" : "Doench",
     "ssc" : "Xu (Wang)",
     "chariRank" : "Chari Rank",
-    "crisprScan" : "Moreno-Mateos",
+    "crisprScan" : "CrisprScan",
     "fusi" : "Fusi (Doench)",
     "chariRaw" : "Chari",
     "finalGc6" : "Ren: 3'GC>4",
     "drsc" : "Housden",
-    "wuCrispr" : "Wong",
     #"finalGc2" : "Farboud-like, last 2 bp GC",
     "finalGg" : "Farboud: -GG",
 }
 def parseData(fname):
-    """ return dict of scoreType -> tuple of (recallList, precisionList, f1List) 
+    """ return dict of scoreType -> dict dataName of (recallList, precisionList, f1List) 
     (one element per dataset) and the names of the datasets"""
     scoreDict = defaultdict(dict)
     dataMax = {}
@@ -101,12 +100,10 @@ def parseData(fname):
     for row in iterTsvRows(fname):
         if row.classifierName.startswith("DecTree"):
             continue
-        rec = int(float(row.recall)*100)
-        prec = int(float(row.precision)*100)
-        f1 = int(float(row.f1)*100)
-        scoreDict[row.classifierName][row.dataset] = (rec, prec, f1)
-        dataMax[row.dataset] = max(dataMax.get(row.dataset, 0), f1)
-        dataCountInfo[row.dataset] = (int(float(row.size)), int(float(row.posCount)))
+        acc = int(float(row.bestXAcc)*100)
+        scoreDict[row.classifierName][row.dataset] = acc
+        dataMax[row.dataset] = max(dataMax.get(row.dataset, 0), acc)
+        dataCountInfo[row.dataset] = (int(float(row.size)), int(float(row.bestXPredCount)))
 
     scoreDict = dict(scoreDict)
     #print scoreDict
@@ -116,112 +113,78 @@ def parseData(fname):
     dataMaxes.sort(key=operator.itemgetter(-1), reverse=True)
     dataNames = [x for x,y in dataMaxes]
 
-    # but put some first
-    newDataNames = []
-    newDataNames.extend(topDatasets)
-    newDataNames.extend(middleDatasets)
-    for dn in dataNames:
-        if dn not in topDatasets and dn not in middleDatasets:
-            newDataNames.append(dn)
-        #if not dn in topDatasets and not dn in middleDatasets:
-            #newDataNames.append(dn)
-    #for dn in dataNames:
-        #if dn in middleDatasets:
-            #newDataNames.append(dn)
-    #for dn in dataNames:
-        #if dn in topDatasets:
-            #newDataNames.append(dn)
-    dataNames = list(reversed(newDataNames))
-
-    # transform to dict className -> list of scores
-    scores = dict()
-    for scoreName in scoreNames:
-        dataVals = scoreDict[scoreName]
-        recList = []
-        precList = []
-        f1List = []
-        for dataName in dataNames:
-            rec, prec, f1 = dataVals[dataName]
-            recList.append(rec)
-            precList.append(prec)
-            f1List.append(f1)
-        scores[scoreName] = (recList, precList, f1List)
-
-    return scores, dataNames, dataCountInfo
+    return scoreDict, dataNames, dataCountInfo
 
 def plot(scores, dataNames, dataCountInfo, outfname):
     " "
-    plt.figure(figsize=(6,10))
+    plt.figure(figsize=(5,3))
     plt.rcParams['ytick.major.pad']='8'
 
     plots = []
-    colors = list(reversed(["blue", "red", "orange", "magenta", "orange", "grey", "orange", "black", "black", "lightblue"]))
-    markers = list(reversed(["^", "^", "^", "o", "o",  "s", "s", "x", "+", "^"]))
-
-    fig, axArr = plt.subplots(1, 2, sharey=True)
+    colors = list(reversed(["blue", "red", "orange", "magenta", "orange", "grey", "orange", "black", "black"]))
+    markers = list(reversed(["^", "^", "^", "o", "o",  "s", "s", "x", "+"]))
 
     for scoreName in scoreNames:
-        dataTuple = scores[scoreName]
-        recVals, precVals, f1Vals = dataTuple
-        yPosList = range(0, len(f1Vals))
-        yPosList = [y-random.random()*0.25 for y in yPosList]
+        dataDict = scores[scoreName]
+        precList = []
+        for dataName in dataNames:
+            precList.append(dataDict[dataName])
+
+        #recVals, precVals, f1Vals = dataTuple
+        yPosList = range(0, len(precList))
+        yPosList = [y-random.random()*0.1 for y in yPosList]
         col = colors.pop()
         marker = markers.pop()
         alpha = 0.7
-        plot = axArr[0].scatter(precVals, yPosList, alpha=alpha, s=30, color=col, marker=marker)
-        plot = axArr[1].scatter(recVals, yPosList, alpha=alpha, s=30, color=col, marker=marker)
+        plot = plt.scatter(precList, yPosList, alpha=alpha, s=30, color=col, marker=marker)
         plots.append(plot)
 
-    #plots = []
-    axArr[1].legend(plots,
+    lgd = plt.legend(plots,
            [scoreDescs[x] for x in scoreNames],
            labelspacing=0,
-           #bbox_to_anchor = (0,0,1,1),
+           bbox_to_anchor = ((1.43, 1.02)),
            #bbox_transform = plt.gcf().transFigure ,
            scatterpoints=1,
            loc='upper right',
            #ncol=len(scoreNames),
            fontsize=8)
+    artists = [lgd]
 
-    plt.setp(axArr[1].get_yticklabels(), visible=False)
-    axArr[0].set_ylim(-1,len(dataNames))
-    axArr[0].set_yticks(range(0, len(dataNames)))
-    axArr[0].set_yticklabels([dataDescs[x] for x in dataNames])
-    axArr[0].set_xlim(-5,105)
-    axArr[1].set_xlim(-5,105)
+    #plt.setp(axArr[1].get_yticklabels(), visible=False)
+    gca = plt.gca()
+    gca.set_ylim(-1,len(dataNames))
+    gca.set_yticks(range(0, len(dataNames)))
+    gca.set_yticklabels([dataDescs[x] for x in dataNames])
+    gca.set_xlim(-5,105)
+    gca.set_xlabel("Accuracy, in %")
     ls = ":"
     lw = 0.4
-    for i in [0,1]:
-        axArr[i].axhline(len(dataNames)-len(topDatasets)-0.7, ls=ls, color="k", lw=lw)
-        axArr[i].axhline(len(dataNames)-len(topDatasets)-len(middleDatasets)-0.7, ls=ls, color="k", lw=lw)
-    axArr[0].set_xlabel("Precision")
-    axArr[1].set_xlabel("Recall")
-    [tick.label.set_fontsize(10) for tick in axArr[0].yaxis.get_major_ticks()]
+    [tick.label.set_fontsize(10) for tick in gca.yaxis.get_major_ticks()]
 
-    fig.tight_layout()
-    #for tl in  axArr[0].get_yticklabels():
-        #print tl.get_position()
+    plt.tight_layout()
     for y in range(0, len(dataNames)):
         dataName = dataNames[y]
         dataSubStr = " - ".join(dataSubs[dataName])
-        axArr[0].annotate(dataSubStr, xy=(0,0), ha="right", size="8", xytext=(-8, y-0.4))
-        size, posCount = dataCountInfo[dataName]
-        axArr[0].annotate("%d guides, %d positives" % (size, posCount), xy=(0,0), ha="right", size="8", xytext=(-8, y-0.68))
+        annot = plt.annotate(dataSubStr, xy=(0,0), ha="right", size="8", xytext=(-8, y-0.4))
+        artists.append(annot)
 
-    fig.subplots_adjust(wspace=0.0001)
-    #fig = plt.gcf()
-    fig.subplots_adjust(left=0.27)
-    plt.savefig(outfname)
+        size, posCount = dataCountInfo[dataName]
+        annot = plt.annotate("%d guides, %d positives" % (size, posCount), xy=(0,0), ha="right", size="8", xytext=(-8, y-0.68))
+        artists.append(annot)
+
+    plt.savefig(outfname, bbox_extra_artists=artists, bbox_inches='tight')
     print "wrote %s" % outfname
 
     outfname = outfname.replace("pdf", "png")
-    plt.savefig(outfname)
+    plt.savefig(outfname, bbox_extra_artists=artists, bbox_inches='tight')
     print "wrote %s" % outfname
     plt.close()
 
 def main():
     scores, dataNames, dataCountInfo = parseData("out/binClassMetrics.tsv")
-    plot(scores, dataNames, dataCountInfo, "out/precRecall.pdf")
+
+    plotDataNames = ["schoenig", "eschstruth", "alenaAll"]
+    plot(scores, plotDataNames, dataCountInfo, "out/accuracy.pdf")
 
 
 main()

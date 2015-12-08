@@ -237,7 +237,9 @@ def evalAllScores_75Perc(datasetName, seqs, labels):
     # run scoreCutoffs.py to get these
     #cutoffs = {'doench': 0.32398638678651903, 'wangOrig': 0.77276957430125004, 'chariRank': 79.365247038449994, 'ssc': 0.41655549999999997, "crisprScan" :0.61, "fusi":0.62}
     #cutoffs = {'oof': 68.0, 'wang': 0.7466315, 'drsc': 6.83643, 'finalGg': 0.0, 'wangOrig': 0.77927021985800005, 'chariRaw': 0.53029115000000004, 'finalGc6': 1.0, 'chariRank': 79.0, 'mh': 5447.0, 'doench': 32.0, 'crisprScan': 60.0, 'ssc': 0.420796, 'fusi': 0.62621093132700001}
-    cutoffs = {'oof': 68.0, 'wang': 0.76407499999999995, 'drsc': 6.8228999999999997, 'finalGg': 0.0, 'wangOrig': 0.78028833768625006, 'chariRaw': 0.52830615000000003, 'finalGc6': 1.0, 'chariRank': 79.0, 'mh': 5424.25, 'doench': 33.0, 'crisprScan': 60.0, 'ssc': 0.41735925000000001, 'fusi': 0.62641138794899998}
+    #cutoffs = {'oof': 68.0, 'wang': 0.76407499999999995, 'drsc': 6.8228999999999997, 'finalGg': 0.0, 'wangOrig': 0.78028833768625006, 'chariRaw': 0.52830615000000003, 'finalGc6': 1.0, 'chariRank': 79.0, 'mh': 5424.25, 'doench': 33.0, 'crisprScan': 60.0, 'ssc': 0.41735925000000001, 'fusi': 0.62641138794899998}
+    cutoffs= {'drsc': 6.8229824999999993, 'oof': 68.0, 'wang': 0.76251025000000006, 'wuCrispr': 22.0, 'chariRaw': 0.52830615000000003, 'wangOrig': 0.78026078241899999, 'finalGg': 0.0, 'finalGc6': 1.0, 'chariRank': 79.0, 'mh': 5425.0, 'doench': 33.0, 'crisprScan': 60.0, 'ssc': 0.41758049999999997, 'fusi': 0.62637582832700001}
+
 
 
     #shortToLong = map23To34()

@@ -45,7 +45,7 @@ datasetToGenome = {
 }
 
 # support scoring types when reading .scores.tab files
-scoreTypes = ["wang", "wangOrig", "doench", "ssc", "chariRank", "chariRaw", "crisprScan", 'drsc', "fusi"]
+scoreTypes = ["wang", "wangOrig", "doench", "ssc", "chariRank", "chariRaw", "crisprScan", 'drsc', "fusi", "wuCrispr"]
 
 def getScoreTypes():
     return scoreTypes
@@ -158,8 +158,18 @@ def calcMitGuideScore_offs(guideSeq, otSeqs, maxMm=None, minHitScore=None, minAl
     return calcMitGuideScore(scoreSum)
 
 def calcHitScore(string1,string2, startPos=0):
-    """ see 'Scores of single hits' on http://crispr.mit.edu/about 
+    """ 
+    The MIT off-target score
+    see 'Scores of single hits' on http://crispr.mit.edu/about
     startPos can be used to feed sequences longer than 20bp into this function
+
+    the most likely off-targets have a score of 100
+    >>> int(calcHitScore("GGGGGGGGGGGGGGGGGGGG","GGGGGGGGGGGGGGGGGGGG"))
+    100
+    >>> int(calcHitScore("AGGGGGGGGGGGGGGGGGGG","GGGGGGGGGGGGGGGGGGGG"))
+    100
+    >>> int(calcHitScore("GGGGGGGGGGGGGGGGGGGG","GGGGGGGGGGGGGGGGGGGA"))
+    41
     """
     # The Patrick Hsu weighting scheme
     #print string1, string2
@@ -864,6 +874,25 @@ def parseMit(dirName, guideSeqs):
             data[guideSeq][otSeq]=float(score)
     return data
 
+def calcOtScores(predScores, scoreFunc):
+    """
+    convert a dict guideSeq -> otSeq -> otScore from the MIT otScore to another
+    Score. possible scoring functions are:
+    - calcCcTopScore from CCTop
+    - calcHsuSuppScore
+    - calcHitScore from the MIT website
+    - calcCfdScore from Doench et al
+    """
+    newScores = dict()
+    for guideSeq, otDict in predScores.iteritems():
+        #print "Converting guide %s" % guideSeq
+        guideDict = dict()
+        for otSeq, otScore in otDict.iteritems():
+            #guideDict[otSeq] = calcCfdScore(guideSeq, otSeq)
+            guideDict[otSeq] = scoreFunc(guideSeq, otSeq)
+        newScores[guideSeq] = guideDict
+    return newScores
+
 def parseCrispor(dirName, guideNames, maxMismatches):
     """ parse crispor output files, return as dict guideSeq -> ot seq -> otScore 
     Also return a dict with guideName -> guideSeq
@@ -871,9 +900,6 @@ def parseCrispor(dirName, guideNames, maxMismatches):
     """
     print("Parsing CRISPR results from dir %s" % dirName)
     predScores = defaultdict(dict)
-    #targetSeqs = {}
-    #for fname in glob.glob(dirName+"/*.tsv"):
-    #print "XX", guideNames
     if guideNames is None:
         fnames = glob.glob(join(dirName, "*.tsv"))
         guideNames = [splitext(basename(fname))[0] for fname in fnames]
@@ -896,6 +922,11 @@ def parseCrispor(dirName, guideNames, maxMismatches):
             #if row.offtargetSeq=="GAATCCTAAATACTCTCCTTCGG":
                 #print "XX", row.guideSeq, row.offtargetSeq
             #targetSeqs[guideName] = row.guideSeq
+
+    otCount = 0
+    for guideSeq, otDict in predScores.iteritems():
+        otCount += len(otDict)
+    print("Read %d off-targets" % otCount)
     return predScores
 
 compTable = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n", 
@@ -986,8 +1017,111 @@ def parseHsuMat(fname):
     assert(min(normAvgs)!=0.0)
     return normMat, normAvgs
 
+def findRuns(lst):
+    """ yield (start, end) tuples for all runs of ident. numbers in lst 
+    >>> list(findRuns([1,1,1,0,0,1,0,1,1,1]))
+    [(0, 3), (5, 6), (7, 10)]
+    """
+    start,end=False,False
+
+    for i,x in enumerate(lst):
+        if x and start is False:
+            start=i
+        if x==0 and start is not False and end is False:
+            end=i-1
+        if start is not False and end is not False:
+            yield start,end+1       #and len is (end-start)
+            start,end=False,False
+    
+    if start is not False:
+        yield start,i+1       #and len is (end-start)
+
+def calcCropitScore(guideSeq, otSeq):
+    """
+    see http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4605288/ PMID 26032770
+
+    >>> int(calcCropitScore("GGGGGGGGGGGGGGGGGGGG","GGGGGGGGGGGGGGGGGGGG"))
+    650
+
+    # mismatch in 3' part
+    >>> int(calcCropitScore("GGGGGGGGGGGGGGGGGGGA","GGGGGGGGGGGGGGGGGGGG"))
+    575
+
+    # mismatch in 5' part
+    >>> int(calcCropitScore("AGGGGGGGGGGGGGGGGGGG","GGGGGGGGGGGGGGGGGGGG"))
+    642
+
+    # only mismatches -> least likely offtarget
+    >>> int(calcCropitScore("AAAAAAAAAAAAAAAAAAAA","GGGGGGGGGGGGGGGGGGGG"))
+    -27
+    """
+    if len(guideSeq)==23:
+        guideSeq = guideSeq[:20]
+        otSeq = otSeq[:20]
+
+    assert(len(guideSeq)==len(otSeq)==20)
+
+    penalties = [5,5,5,5,5,5,5,5,5,5,70,70,70,70,70,50,50,50,50,50]
+    score = 0.0
+
+    # do the score only for the non-mism positions
+    misList = []
+    score = 0.0
+    for i in range(0, 20):
+        if guideSeq[i]!=otSeq[i]:
+            misList.append(1)
+        else:
+            misList.append(0)
+            score += penalties[i]
+    
+    # get the runs of mismatches and update score for these positions
+    consecPos = set()
+    singlePos = set()
+    for start, end in findRuns(misList):
+        if end-start==1:
+            score += -penalties[start]/2.0
+        else:
+            # mean if they happen to fall into different segments
+            startScore = penalties[start]
+            endScore = penalties[end-1]
+            score += -((startScore+endScore)/2.0)
+
+    return score
+def calcCcTopScore(guideSeq, otSeq):
+    """
+    calculate the CC top score
+    see http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0124633#sec002
+    # no mismatch -> most likely off-target
+    >>> int(calcCcTopScore("GGGGGGGGGGGGGGGGGGGG","GGGGGGGGGGGGGGGGGGGG"))
+    224
+
+    # mismatch in 5' part
+    >>> int(calcCcTopScore("AGGGGGGGGGGGGGGGGGGG","GGGGGGGGGGGGGGGGGGGG"))
+    222
+
+    # mismatch in 3' part
+    >>> int(calcCcTopScore("GGGGGGGGGGGGGGGGGGGA","GGGGGGGGGGGGGGGGGGGG"))
+    185
+
+    # only mismatches -> least likely offtarget
+    >>> int(calcCcTopScore("AAAAAAAAAAAAAAAAAAAA","GGGGGGGGGGGGGGGGGGGG"))
+    0
+    """
+    if len(guideSeq)==23:
+        guideSeq = guideSeq[:20]
+        otSeq = otSeq[:20]
+
+    if not (len(guideSeq)==len(otSeq)==20):
+        raise Exception("Not 20bp long: %s %dbp<-> %s %dbp" % (guideSeq, len(guideSeq), otSeq, len(otSeq)))
+    score = 0.0
+    for i in range(0, 20):
+        if guideSeq[i]!=otSeq[i]:
+            score += 1.2**(i+1)
+    return 224.0-score
+
 def calcHsuSuppScore(guideSeq, otSeq, baseDir="./"):
     """ calculate the score described on page 17 of the Hsu et al 2013 supplement PDF
+    # mismatch in 5' part -> 
     >>> calcHsuSuppScore("AGTCCGAGCAGAAGAAGAA","AGTCCGAGCAGAAGAAGAG")
     0.4509132855355929
     >>> calcHsuSuppScore("TGTCCGAGCAGAAGAAGAA","AGTCCGAGCAGAAGAAGAA")
@@ -1583,7 +1717,7 @@ def parseSeqScores(datasetName):
 def parseEffScores(datasetName):
     """ parse an efficiency dataset from the effData/ directory and return 
     a dict seq -> scoreType -> score and dict seq -> (guideName, modFreq)
-    >>> parseEffScores("xu2015")
+    >> parseEffScores("xu2015")
     """
     inFname = join("effData/"+datasetName+".scores.tab")
     print "reading %s" % inFname
@@ -1672,6 +1806,70 @@ def writeRow(ofh, row):
     row = [str(x) for x in row]
     ofh.write("\t".join(row))
     ofh.write("\n")
+
+# === SOURCE CODE cfd-score-calculator.py provided by John Doench =====
+
+def get_mm_pam_scores():
+    """
+    """
+    dataDir = join(dirname(__file__), 'CFD_Scoring')
+    mm_scores = pickle.load(open(join(dataDir, 'mismatch_score.pkl'),'rb'))
+    pam_scores = pickle.load(open(join(dataDir, 'pam_scores.pkl'),'rb'))
+    return (mm_scores,pam_scores)
+    #except:
+        #raise Exception("Could not find file with mismatch scores or PAM scores")
+
+#Reverse complements a given string
+def revcom(s):
+    basecomp = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A','U':'A'}
+    letters = list(s[::-1])
+    letters = [basecomp[base] for base in letters]
+    return ''.join(letters)
+
+#Calculates CFD score
+def calc_cfd(wt,sg,pam):
+    mm_scores,pam_scores = get_mm_pam_scores()
+    score = 1
+    sg = sg.replace('T','U')
+    wt = wt.replace('T','U')
+    s_list = list(sg)
+    wt_list = list(wt)
+    for i,sl in enumerate(s_list):
+        if wt_list[i] == sl:
+            score*=1
+        else:
+            key = 'r'+wt_list[i]+':d'+revcom(sl)+','+str(i+1)
+            score*= mm_scores[key]
+    score*=pam_scores[pam]
+    return (score)
+
+mm_scores, pam_scores = None, None
+
+def calcCfdScore(guideSeq, otSeq):
+    """ based on source code provided by John Doench
+    >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "GGGGGGGGGGGGGGGGGAAAGGG")
+    0.4635989007074176
+    >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "GGGGGGGGGGGGGGGGGGGGGGG")
+    1.0
+    >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "aaaaGaGaGGGGGGGGGGGGGGG")
+    0.5140384614450001
+    """
+    global mm_scores, pam_scores
+    if mm_scores is None:
+        mm_scores,pam_scores = get_mm_pam_scores()
+    wt = guideSeq.upper()
+    off = otSeq.upper()
+    m_wt = re.search('[^ATCG]',wt)
+    m_off = re.search('[^ATCG]',off)
+    if (m_wt is None) and (m_off is None):
+        pam = off[-2:]
+        sg = off[:-3]
+        cfd_score = calc_cfd(wt,sg,pam)
+        return cfd_score
+        #print "CFD score: "+str(cfd_score)
+
+# ==== END CFD score source provided by John Doench
+
 
 if __name__=="__main__":
     import doctest

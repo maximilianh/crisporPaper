@@ -20,7 +20,7 @@ NORMALIZE = False
 scoreCorrFh = None
 
 # the last two score types are not written to the tab-sep file
-scoreTypes = ["wangOrig", "doench", "ssc", "chariRaw", "crisprScan", "drsc", "fusi", "finalGc6", "finalGg"]
+scoreTypes = ["wangOrig", "doench", "ssc", "chariRaw", "crisprScan", "drsc", "fusi", "finalGc6", "finalGg", "wuCrispr"]
 
 scoreDescs = {
     "wang" : "Wang Score2",
@@ -37,6 +37,7 @@ scoreDescs = {
     "crisprScan" : "Moreno-Matos Score",
     "fusi" : "Fusi/Doench Score",
     "drsc" : "Housden Score",
+    "wuCrispr" : "Wong Score",
     "oof"      : "Bae Out-of-Frame Score"
 }
 
@@ -49,6 +50,7 @@ scoreLabels = {
         "chariRaw" : "SVM Score from Chari et al. 2015",
         "ssc" : "Regr Score from Xu et al. 2015",
         "fusi" : "Regr Score from Fusi/Doench et al. 2015",
+        "wuCrispr" : "SVM Score from Wong et al. 2015",
         "drsc" : "Score from Housden et al. 2015",
         "crisprScan" : "Regr Score from Moreno-Matos et al. 2015",
         "finalGc6" : "last 6bp GC>4, Ren 2015 +/-0.25",
@@ -117,8 +119,10 @@ def plotScores(ax, scores, guideFreqs, scoreType, annotate, diam, doLegend=False
 
     ax.scatter(plotX, plotY, alpha=.5, marker="o", s=diam, linewidth=0)
 
-    if scoreType in ["wang", "wangOrig", "doench"]:
+    if scoreType in ["wang", "wangOrig"]:
         ax.set_xlim(0, 1.0)
+    elif scoreType in ["doench"]:
+        ax.set_xlim(0, 100)
     elif scoreType=="chariRank":
         ax.set_xlim(0, 100.0)
 
