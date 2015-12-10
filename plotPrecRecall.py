@@ -16,25 +16,6 @@ scoreNames = ['doench', 'ssc', 'crisprScan', 'wangOrig', 'chariRank', 'fusi', "d
 # wang = SVM
 # chari = SVM
 
-dataDescs = {
-     'varshney2015': "Varshney Zebrafish",
-     'ren2015': "Ren Drosophila Training",
-     'xu2015TrainHl60': "Wang/Xu KO Training",
-     'gagnon2014': "Gagnon Zebrafish",
-     'chari2015Train':"Chari Training",
-     'chari2015Valid_293T':"Chari Validation",
-     'doench2014-Hs': 'Doench Training',
-     'museumIC50':  "Concordet IC50",
-     'xu2015AAVS1': "Xu Validation AAVS1",
-     'xu2015FOX-AR': "Xu Validation FOX/AR",
-     'schoenig': u'Sch\u00F6nig LacZ',
-     'farboud2015' : "Farboud C.elegans Training",
-     'eschstruth' : "Eschstruth Zebrafish        ",
-     'morenoMateos2015' : "CrisprScan Training",
-     'alenaAll' : "Shkumatava Dataset",
-     'housden2015' : "Housden Dros. Training",
-     }
-
 dataSubs = {
      'varshney2015': ("Zebrafish", "Injection", "Sequencing"),
      'ren2015': ("Drosophila", "Injection", "Sequencing"),
@@ -186,7 +167,7 @@ def plot(scores, dataNames, dataCountInfo, outfname):
     plt.setp(axArr[1].get_yticklabels(), visible=False)
     axArr[0].set_ylim(-1,len(dataNames))
     axArr[0].set_yticks(range(0, len(dataNames)))
-    axArr[0].set_yticklabels([dataDescs[x] for x in dataNames])
+    axArr[0].set_yticklabels([mainDataDescs[x] for x in dataNames])
     axArr[0].set_xlim(-5,105)
     axArr[1].set_xlim(-5,105)
     ls = ":"

@@ -44,6 +44,71 @@ datasetToGenome = {
     "chari2015Train": "hg19"
 }
 
+# the most important datasets and their descriptions
+mainDataDescs = {
+     'varshney2015': "Varshney Zebrafish",
+     'ren2015': "Ren Drosophila Training",
+     'xu2015TrainHl60': "Wang/Xu KO Training",
+     'gagnon2014': "Gagnon Zebrafish",
+     'chari2015Train':"Chari Training",
+     'chari2015Valid_293T':"Chari Validation",
+     'doench2014-Hs': 'Doench Training',
+     'museumIC50':  "Concordet IC50",
+     'xu2015AAVS1': "Xu Validation AAVS1",
+     'xu2015FOX-AR': "Xu Validation FOX/AR",
+     'schoenig': u'Sch\u00F6nig LacZ',
+     'farboud2015' : "Farboud C.elegans Training",
+     'eschstruth' : "Eschstruth Zebrafish        ",
+     'morenoMateos2015' : "Moreno-Mateos Training",
+     'alenaAll' : "Shkumatava Dataset",
+     'housden2015' : "Housden Dros. Training",
+     }
+
+datasetDescs = {
+    "xu2015Train": "Wang/Xu",
+    "xu2015TrainHl60": "Wang/Xu HL60",
+    "xu2015TrainKbm7": "Wang/Xu KBM7",
+    "doench2014-Hs": "Doench MOLM13/NB4/TF1",
+    "doench2014-Mm": "Doench Mouse",
+    "housden2015": "Housden Dros-S2R+",
+    "doench2014-CD33Exon2": "Doench CD33 Exon2",
+    "doench2014-CD33Exon3": "Doench CD33 Exon3",
+    "doench2014-CD13Exon10": "Doench CD13 Exon10",
+    "varshney2015": "Varshney Zebrafish",
+    "gagnon2014": "Gagnon Zebrafish",
+    "xu2015": "Xu Validation",
+    "xu2015FOX-AR": "Xu KO Validation FOX/AR",
+    "xu2015AAVS1": "Xu T7 Validation AAVS1",
+    "ren2015": "Ren Drosophila",
+    "farboud2015": "Farboud C. elegans",
+    "morenoMateos2015": "Moreno-Mateos Zebrafish",
+    "museumT7": "Concordet Indel T7",
+    "museumIC50": "Concordet Indel IC50",
+    "schoenig": "Schoenig Indel LacZ Rank",
+    "eschstruth": "Eschstruth Indel T7 Rank",
+    "chari2015Train": "Chari Human",
+    "chari2015Train293T": "Chari 293T",
+    "alenaAll": "Shkumatava Lab",
+    "alenaOthers": "Shkumatava Lab: Helene/Yuvia/Antoine",
+    "alenaPerrine": "Shkumatava Lab: Perrine",
+    "alenaHelene": "Shkumatava Lab: Helene",
+    "alenaHAP": "Shkumatava Lab: Helene/Antoine/Perrine",
+    "alenaAntoine": "Shkumatava Lab: Antoine",
+    "alenaYuvia": "Shkumatava Lab: Yuvia",
+    "alenaAngelo": "Shkumatava Lab: Angelo",
+    "concordet2-Hs": "Conc2 Hs",
+    "concordet2-Mm": "Conc2 Mm",
+    "concordet2-Rn": "Conc2 Rn",
+    "concordet2": "Concordet2 Hs/Mm/Rn",
+    "chari2015TrainK562": "Chari Human K562",
+    "chariEval" : "Chari and Wong Eval Set"
+}
+
+# a list of all possible score names in our preferred order
+allScoreNames = ['doench', 'ssc', 'crisprScan', 'wangOrig', 'chariRank', 'fusi', "drsc", 'finalGc6', 'finalGg', "wuCrispr"]
+# and their colors
+allScoreColors = ["blue", "red", "orange", "magenta", "orange", "grey", "orange", "black", "black", "lightblue"]
+
 # support scoring types when reading .scores.tab files
 scoreTypes = ["wang", "wangOrig", "doench", "ssc", "chariRank", "chariRaw", "crisprScan", 'drsc', "fusi", "wuCrispr"]
 

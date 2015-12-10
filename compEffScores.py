@@ -57,45 +57,6 @@ scoreLabels = {
         "finalGg" : "last 2bp=GG , Farboud 2015 +/-0.25"
         }
 
-datasetDescs = {
-    "xu2015Train": "Wang/Xu",
-    "xu2015TrainHl60": "Wang/Xu HL60",
-    "xu2015TrainKbm7": "Wang/Xu KBM7",
-    "doench2014-Hs": "Doench MOLM13/NB4/TF1",
-    "doench2014-Mm": "Doench Mouse",
-    "housden2015": "Housden Dros-S2R+",
-    "doench2014-CD33Exon2": "Doench CD33 Exon2",
-    "doench2014-CD33Exon3": "Doench CD33 Exon3",
-    "doench2014-CD13Exon10": "Doench CD13 Exon10",
-    "varshney2015": "Varshney Zebrafish",
-    "gagnon2014": "Gagnon Zebrafish",
-    "xu2015": "Xu Validation",
-    "xu2015FOX-AR": "Xu KO Validation FOX/AR",
-    "xu2015AAVS1": "Xu T7 Validation AAVS1",
-    "ren2015": "Ren Drosophila",
-    "farboud2015": "Farboud C. elegans",
-    "morenoMateos2015": "Moreno-Mateos Zebrafish",
-    "museumT7": "Concordet Indel T7",
-    "museumIC50": "Concordet Indel IC50",
-    "schoenig": "Schoenig Indel LacZ Rank",
-    "eschstruth": "Eschstruth Indel T7 Rank",
-    "chari2015Train": "Chari Human",
-    "chari2015Train293T": "Chari 293T",
-    "alenaAll": "Shkumatava Lab",
-    "alenaOthers": "Shkumatava Lab: Helene/Yuvia/Antoine",
-    "alenaPerrine": "Shkumatava Lab: Perrine",
-    "alenaHelene": "Shkumatava Lab: Helene",
-    "alenaHAP": "Shkumatava Lab: Helene/Antoine/Perrine",
-    "alenaAntoine": "Shkumatava Lab: Antoine",
-    "alenaYuvia": "Shkumatava Lab: Yuvia",
-    "alenaAngelo": "Shkumatava Lab: Angelo",
-    "concordet2-Hs": "Conc2 Hs",
-    "concordet2-Mm": "Conc2 Mm",
-    "concordet2-Rn": "Conc2 Rn",
-    "concordet2": "Concordet2 Hs/Mm/Rn",
-    "chari2015TrainK562": "Chari Human K562"
-}
-
 def plotScores(ax, scores, guideFreqs, scoreType, annotate, diam, doLegend=False):
     " create scatter plot "
     regrX = []

@@ -116,3 +116,12 @@ cp out/mitCrisporSensDiff.tsv ~/Dropbox/articles/crispor/crisporArticleSupplFile
 convert -density 300 ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig3.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile1.png
 convert -density 200 ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.png
 #cp out/gcOtCount.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig1.pdf 
+cp out/heatMap.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig5.pdf 
+convert -density 200 ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig1.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig1.png
+cp out/venn.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig2.pdf
+convert -density 200 ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig2.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig2.png
+convert -density 200 ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig4.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig4.png
+cp out/precRecall.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFig5.pdf
+cp out/compEffScores-valid.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile3.pdf 
+cp out/mismatchFraction-min01Perc.pdf ~/Dropbox/articles/crispor/crisporArticleSupplFiles/fig1.pdf 
+less effData/schoenig.scores.tab | cut -f2,3,7,21 | awk '{print $1, substr($3,31,24), $4}'
