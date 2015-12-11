@@ -5,9 +5,13 @@ from collections import defaultdict, Counter
 from os.path import basename, join, splitext, isfile, dirname
 import glob
 
-import svmlight # install with 'sudo pip install svmlight'
-
 logging.basicConfig(loglevel=logging.INFO)
+
+try:
+    import svmlight # install with 'sudo pip install svmlight'
+except:
+    logging.warn("smvlight library not found. it is not necessary for most steps")
+
 
 # for the chari code
 import time, gzip, platform
