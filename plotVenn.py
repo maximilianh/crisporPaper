@@ -7,6 +7,9 @@ from annotateOffs import *
 from collections import defaultdict
 #from scipy.stats import linregress
 
+import matplotlib as mpl
+mpl.use('Agg')
+
 from matplotlib_venn import venn3, venn2
 
 import matplotlib.pyplot as plt
@@ -22,11 +25,15 @@ def readMitPredOts(fnames):
     return ret
 
 def parseAllOffs(fname, skipCell=False):
-    " return a dict targetSeq -> study -> list of (off-target sequence, modFreq)"
+    """ return a dict targetSeq -> study -> list of (off-target sequence, modFreq)
+    and a dict targetSeq -> targetName
+    """
     nameToTarget = defaultdict(dict)
+    targetToName = {}
     for row in iterTsvRows(fname):
         if row.type=="on-target":
             nameToTarget[row.name] = row.seq
+            targetToName[row.seq] = row.name
 
     seqs = defaultdict(dict)
     for row in iterTsvRows(fname):
@@ -67,12 +74,13 @@ def parseAllOffs(fname, skipCell=False):
                     continue
                 filtSeqs[targetSeq].setdefault(study, []).append((seq, freq))
 
-    return filtSeqs
+    #assert("Kim16" in filtSeqs["GGGTGGGGGGAGTTTGCTCCTGG"])
+    return filtSeqs, targetToName
 
 def createTsv(overlapGuides):
     # create the TSV files
     outTsvFnames = []
-    seqs = parseAllOffs("offtargets.tsv")
+    seqs, seqNames = parseAllOffs("offtargets.tsv")
     mitSeqs = readMitPredOts(["mitOfftargets/Hsu_EMX1.3.csv", "mitOfftargets/Frock_VEGFA.csv"])
 
     for guideSeq, guideName in overlapGuides:
@@ -81,6 +89,7 @@ def createTsv(overlapGuides):
 
         otFreqs = defaultdict(dict)
         studies = sorted(studySeqs)
+        #print guideName, studies, studySeqs
         for studyName in studies:
             otInfo = studySeqs[studyName]
             for otSeq, otFreq in otInfo:
@@ -114,33 +123,54 @@ def createTsv(overlapGuides):
         outTsvFnames.append(ofh.name)
 
     print "wrote data to %s" % ", ".join(outTsvFnames)
+
 def main():
     #plt.figure(figsize=(8,10))
-    fig, axArr = plt.subplots(2, 1)
-    fig.set_size_inches(5,10)
 
-    seqs = parseAllOffs("offtargets.tsv", skipCell=True)
+    seqs, seqNames = parseAllOffs("offtargets.tsv", skipCell=True)
     
-    overlapGuides = [
-        ("GAGTCCGAGCAGAAGAAGAAGGG", "EMX1"),
-        ("GGGTGGGGGGAGTTTGCTCCTGG", "VEGFA")
-        ]
+    #overlapGuides = [
+        #("GAGTCCGAGCAGAAGAAGAAGGG", "EMX1"),
+        #("GGGTGGGGGGAGTTTGCTCCTGG", "VEGFA")
+        #]
+    overlapGuides = []
+    for targetSeq, studyOffs in seqs.iteritems():
+        print targetSeq, studyOffs.keys(), seqNames[targetSeq]
+        parts = seqNames[targetSeq].split("_")
+        if len(parts)==2:
+            name = parts[-1]
+        if len(parts)==3:
+            name = parts[1]+" "+parts[2]
+        if len(studyOffs)>=2:
+            overlapGuides.append( (targetSeq, name) )
+    print overlapGuides
+
+    fig, axArr = plt.subplots(len(overlapGuides), 1)
+    fig.set_size_inches(5,25)
 
     studyDescs = {
         "Tsai" : "GuideSeq\n(Tsai et al, HEK293)",
         "Frock" : "Translocation\nsequencing\n(HTGTS,\nFrock et al, HEK293T)",
         "Hsu" : "Targeted sequencing\n(Hsu et al,\nHEK293FT)",
-        "Kim" : "DigenomeSeq\n(Kim et al, HAP1)",
+        "Kim" : "DigenomeSeq\n(Kim et al 2015, HAP1)",
+        "Kim16" : "DigenomeSeq2\n(Kim et al 2016, HeLa)",
     }
 
     for plotRow, (guideSeq, guideName) in enumerate(overlapGuides):
+        print "guide: ",guideName
         studySeqs = seqs[guideSeq]
 
         ax = axArr[plotRow]
-        print plotRow, guideSeq, guideName
         labels = []
         sets = []
         for studyName, seqInfo in studySeqs.items():
+            #if studyName not in studyDescs:
+                #continue
+            if studyName=="Kim" and guideName=="EMX1":
+                continue
+            if studyName=="Hsu":
+                continue
+            print "using guides from ", studyName
             studyName = studyDescs[studyName]
             labels.append(studyName)
             studyOts = set()
@@ -149,11 +179,18 @@ def main():
                     studyOts.add(otSeq)
             sets.append(set(studyOts))
 
-        if len(sets)!=3:
+        if len(sets)==3:
+            #print sets
+            #assert(False)
+            venn3(subsets=sets, set_labels=labels, ax=ax, labelSize="small")
+            ax.set_title(guideName)
+        elif len(sets)==2:
+            venn2(subsets=sets, set_labels=labels, ax=ax)
+            ax.set_title(guideName)
+        else:
+            print len(sets)
             assert(False)
 
-        venn3(subsets=sets, set_labels=labels, ax=ax, labelSize="small")
-        ax.set_title(guideName)
 
     fig.tight_layout()
 

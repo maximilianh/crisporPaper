@@ -1,0 +1,2 @@
+wget http://tko.ccbr.utoronto.ca/Data/readcount-HeLa-lib2.gz
+gunzip *

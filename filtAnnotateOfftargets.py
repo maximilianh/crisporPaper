@@ -22,6 +22,9 @@ def makeOutRows(inRows, targetSeqs, specScores):
 
     rows = []
     for row in inRows:
+        if row.name not in targetSeqs:
+            print "row %s: off-target without an on-target?" % row
+            assert(False)
         guideSeq = targetSeqs[row.name]
         otSeq = row.seq
         mmCount, diffLogo = countMms(guideSeq[:-3], otSeq[:-3])

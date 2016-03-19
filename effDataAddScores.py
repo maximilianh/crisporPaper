@@ -26,6 +26,8 @@ for fname in glob.glob("effData/*.context.tab"):
         newRows.append(newRow)
 
     scores = calcAllScores(seqs, doAll=True)
+    # add a drsc score to stay compatible with older scripts call housden drsc
+    scores["drsc"] = scores["housden"]
     scoreNames = sorted(scores.keys())
 
     headers = ["dataset", "guide", "seq", "modFreq", "db", "position", "longSeq100Bp"]

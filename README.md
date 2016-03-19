@@ -98,6 +98,12 @@ compSpecScoreVsOtCount_split.py:
 Efficiency scoring
 ================
 
+This part requires 3rd party software packages:
+- an R package for the Wang/Lander score, to install it:
+    Rscript -e 'install.packages("e1071", repos="http://cran.rstudio.com/")'
+- usually not needed: the python svmlight library for the fast calculation of Chari scores:
+    pip install svmlight
+
 effData/:
 Contains the data from the efficiency studies.
 Each subdirectory contains supplementary files or converted excel tables and a conversion script
@@ -121,8 +127,9 @@ effDataAddContext.py: extends 34mers or 20mers of files in the effData directory
         are available from an older version of this script, they were mapped with 
         BLAT from the 23mers provided by the papers. 
         The 34mers are mapped with gfClient, the 23mers with local BLAT.
-        Input is effData/*.ext.tab (34mers) of effData/*.guides.tab (20mers)
+        Input is effData/*.ext.tab (34mers) or effData/*.guides.tab (20mers)
         and Output is effData/*.context.tab
+        All newer datasets are in effData/*.guides.tab files.
 
 effDataAddScores.py: 
         runs the scoring models over effData/*.context.tab and outputs
@@ -185,6 +192,7 @@ corrActivityOof.py: determine correlation between KO activity and the Bae et al 
         in the effData directory. 
 
 The efficiency studies are:
+
 xu2015Train.tab - The Wang/Sabatini/Lander Science 2014 data, as used to train the Xu SVM model.
 The data was also used to train the Wang et al SVM model, which they provided to us
 
@@ -195,6 +203,7 @@ doench2014-Mm.tab
 farboud2015.tab
 gagnon2014.tab
 ren2015.tab
+liu2016.tab
 varshney2015.tab
 xu2015.tab
 museumIC50.tab

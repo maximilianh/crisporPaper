@@ -10,16 +10,20 @@ logging.basicConfig(loglevel=logging.INFO)
 try:
     import svmlight # install with 'sudo pip install svmlight'
 except:
-    logging.warn("smvlight library not found. it is not necessary for most steps")
+    logging.warn("smvlight library not found. it is only necessary for the fast way to calc chari scores. install it with 'pip install svmlight'")
 
 
 # for the chari code
 import time, gzip, platform
 
 # assignment of activity datasets to genomes
+# newer datasets have the genome directly in their filenames,
+# e.g. doench2016_hg19 
+# so no need to add them to this table
 datasetToGenome = {
     "housden2015": "dm3",
     "xu2015Train": "hg19",
+    "xu2015TrainMEsc": "mm10",
     "eschstruth" : "danRer10",
     "doench2014-Hs": "hg19",
     "doench2014-Mm": "mm9",
@@ -53,10 +57,13 @@ mainDataDescs = {
      'varshney2015': "Varshney Zebrafish",
      'ren2015': "Ren Drosophila Training",
      'xu2015TrainHl60': "Wang/Xu KO Training",
+     'xu2015TrainMEsc': "Wang/Xu KO Mouse Training",
      'gagnon2014': "Gagnon Zebrafish",
      'chari2015Train':"Chari Training",
      'chari2015Valid_293T':"Chari Validation",
-     'doench2014-Hs': 'Doench Training',
+     'doench2014-Hs': "Doench 2014 Human",
+     'doench2016_hg19': 'Doench 2016 Human',
+     'doench2016_mm9': 'Doench 2016 Mouse',
      'museumIC50':  "Concordet IC50",
      'xu2015AAVS1': "Xu Validation AAVS1",
      'xu2015FOX-AR': "Xu Validation FOX/AR",
@@ -66,18 +73,22 @@ mainDataDescs = {
      'morenoMateos2015' : "Moreno-Mateos Training",
      'alenaAll' : "Shkumatava Dataset",
      'housden2015' : "Housden Dros. Training",
+     'ghandi2016_ci2' : "Ghandi Ciona"
      }
 
 datasetDescs = {
     "xu2015Train": "Wang/Xu",
     "xu2015TrainHl60": "Wang/Xu HL60",
     "xu2015TrainKbm7": "Wang/Xu KBM7",
-    "doench2014-Hs": "Doench MOLM13/NB4/TF1",
-    "doench2014-Mm": "Doench Mouse",
+    "xu2015TrainMEsc": "Wang/Xu MEsc",
+    "doench2016_hg19": "Doench 2016 Human",
+    "doench2016_mm9": "Doench 2016 Mouse",
+    "doench2014-Hs": "Doench 2014 MOLM13/NB4/TF1",
+    "doench2014-Mm": "Doench 2014 Mouse",
     "housden2015": "Housden Dros-S2R+",
-    "doench2014-CD33Exon2": "Doench CD33 Exon2",
-    "doench2014-CD33Exon3": "Doench CD33 Exon3",
-    "doench2014-CD13Exon10": "Doench CD13 Exon10",
+    "doench2014-CD33Exon2": "Doench 2014 CD33 Exon2",
+    "doench2014-CD33Exon3": "Doench 2014 CD33 Exon3",
+    "doench2014-CD13Exon10": "Doench 2014 CD13 Exon10",
     "varshney2015": "Varshney Zebrafish",
     "gagnon2014": "Gagnon Zebrafish",
     "xu2015": "Xu Validation",
@@ -105,6 +116,8 @@ datasetDescs = {
     "concordet2-Rn": "Conc2 Rn",
     "concordet2": "Concordet2 Hs/Mm/Rn",
     "chari2015TrainK562": "Chari Human K562",
+    "liu2016_mm9": "Liu Neuro2A Surveyor 1/0",
+    "ghandi2016_ci2" : "Ghandi Ciona Electroporation",
     "chariEval" : "Chari and Wong Eval Set"
 }
 
@@ -987,7 +1000,10 @@ def parseCrispor(dirName, guideNames, maxMismatches):
                 #print "strange chrom, skipping %s" % str(row)
                 continue
             guideName = splitext(basename(fname))[0]
-            predScores[row.guideSeq][row.offtargetSeq] = float(row.offtargetScore)
+            try:
+                predScores[row.guideSeq][row.offtargetSeq] = float(row.offtargetScore)
+            except:
+                predScores[row.guideSeq][row.offtargetSeq] = float(row.mitOfftargetScore)
             #if row.offtargetSeq=="GAATCCTAAATACTCTCCTTCGG":
                 #print "XX", row.guideSeq, row.offtargetSeq
             #targetSeqs[guideName] = row.guideSeq
@@ -1543,6 +1559,7 @@ def convToRankPerc(vec):
 # rsync -avp hgdownload.soe.ucsc.edu::gbdb/dm3/dm3.2bit ./ --progress --partial
 blatServers = {
     "hg19": ("blat1a", "17779"),
+    "hg38": ("blat1c","17781"),
     "danRer10" : ("blat1c", "17863"),
     "dm3" : ("blat4d", "17791"),
     "ce6" : ("blat4d", "17841"),
@@ -1798,18 +1815,9 @@ def parseEffScores(datasetName):
     for row in iterTsvRows(inFname):
         seq = row.seq
         scores[seq] = {}
+        dataDict = row._asdict()
         for st in scoreTypes:
-            scores[seq][st] = float(row._asdict()[st])
-
-        #scores[seq]["wang"] = scores[seq]["wang"]
-
-        # stay compatible with new files where all scores all 0-100
-        #if scores[seq]["doench"] > 1.0:
-            #scores[seq]["doench"] = scores[seq]["doench"] / 100
-        #if scores[seq]["wangOrig"] > 1.0:
-            #scores[seq]["wangOrig"] = scores[seq]["wangOrig"] / 100
-        #if scores[seq]["wang"] > 1.0:
-            #scores[seq]["wang"] = scores[seq]["wang"] / 100
+            scores[seq][st] = float(dataDict[st])
 
         guideSeq = row.seq[:20]
         scores[seq]["finalGc6"] = int(countFinalGc(guideSeq, 6)>=4)

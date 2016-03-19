@@ -1,6 +1,8 @@
 # compare guide specificity scores against ot counts
 # based on compareMitCrisporSpecScore.py
-# XX currently recalculating the MIT scores. Maybe use the originals (once the site is working again)
+# * maybe fix one distant day:
+# - Currently recalculating the MIT scores myself. Maybe use the originals (once the site is working again)
+
 from annotateOffs import *
 import matplotlib.pyplot as plt
 from collections import defaultdict
@@ -148,6 +150,7 @@ def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCo
     # right subplot: a histogram
     axarr[1].set_xlabel("%s Guide Specificity Score" % suffix)
     mitHistXVals = np.array(mitHistXVals)
+    print mitHistYVals
     genomeBars = axarr[1].bar(mitHistXVals+2, mitHistYVals, 3, edgecolor='white', color="green" , lw=1)
     otBars = axarr[1].bar(mitHistXVals+3+2, otCountsHistMit, 3, edgecolor='white', color="blue" , lw=1)
     YMAX=45
@@ -172,8 +175,10 @@ def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCo
     plt.savefig(plotFname.replace(".pdf", ".png"), bbox_extra_artists=(leg1,), bbox_inches='tight')
     print "wrote plot to %s, added .png" % plotFname
     plt.close()
+
 def main():
     maxMismatches = 4
+    # get guide sequences and their offtargets 
     guideValidOts, guideSeqs = parseOfftargets("out/annotOfftargets.tsv", maxMismatches, False, None)
 
     # get sum of off-target frequencies
@@ -219,7 +224,13 @@ def main():
         xValsMit.append(mitScore)
         yValsWeak.append(weakOtCount)
         yValsStrong.append(strongOtCount)
+        #print mitScore
+        #print mitScore/10
+        #print otCountsHistMit
+        if mitScore==100:
+            mitScore=99
         otCountsHistMit[mitScore/10] += 1
+        print guideName, crisporScore
         otCountsHistCrispor[crisporScore/10] += 1
         areas.append(otShareSum[guideName])
 
@@ -233,7 +244,6 @@ def main():
     assert(sum(otCountsHistMit)-100.0<0.01)
 
     otCountsHistCrispor = [100*x / float(len(guideSeqs)) for x in otCountsHistCrispor]
-    print otCountsHistCrispor
     assert(sum(otCountsHistCrispor)-100<0.01)
 
     for row in rows:
@@ -243,8 +253,10 @@ def main():
 
     pickle.dump(scoreCache, open(TMPFNAME, "w"))
 
-    makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCountsHistMit, "MIT")
+    print "not making MIT subplot"
+    #makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCountsHistMit, "MIT")
 
+    print otCountsHistCrispor
     makeTwoSubplots(xValsCrispor, yValsWeak, areas, crisporHistXVals, crisporHistYVals, otCountsHistCrispor, "CRISPOR")
 
 main()
