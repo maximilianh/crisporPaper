@@ -1,0 +1,254 @@
+Replies from referees:
+
+Your submission to Genome Biology - GBIO-D-16-00232
+        
+Feb 29 GBIO-D-16-00232
+
+Evaluation of off-target and on-target scoring algorithms and integration into
+the guide RNA selection tool CRISPOR Maximilian Haeussler, PhD; Kai Schoenig,
+PhD; Hélène Eckert, PhD; Alexis Eschstruth, PhD; Sylvie Schneider-Maunoury,
+PhD; Alena Shkumatava, PhD; Jim Kent, PhD; Jean-Stephane Joly, PhD; Jean-Paul
+Concordet, PhD
+
+Dear Maximilian,
+
+Thank you very much for submitting your manuscript entitled 'Evaluation of
+off-target and on-target scoring algorithms and integration into the guide RNA
+selection tool CRISPOR' to Genome Biology. It has now been seen by two referees
+and their comments are accessible below.
+
+As you will see from the reports, the referees find the manuscript of potential
+interest, but they raise serious concerns that the comparison described in the
+manuscript is not exhaustive. In particular, both referees point out that a
+number of recently published tools and datasets have not been included. Since
+the main strength of the manuscript, in their opinion, is the thorough
+comparison of the existing tools, we believe it is crucial that this point is
+addressed. Additionally, both referees note that the number of experimentally
+evaluated sgRNAs and off-target sequences are very small, and should be
+increased. Finally, Referee 2 notes that it is important that the tools are
+evaluated on an independent dataset. It seems to us to be essential that all of
+the referees’ concerns are fully addressed, in the form of a revised
+manuscript, before we can reach a final decision on publication.
+
+When revising the manuscript, please also ensure that the manuscript is
+formatted according to our instructions and that editable figures are provided
+with the revised manuscript. Please see
+http://genomebiology.biomedcentral.com/submission-guidelines/research for
+further details. Please note that if we decide to publish your manuscript we
+will require that all data be submitted to a relevant repository with the
+record publicly accessible and the accession numbers included in the Methods
+section. We will also require that all scripts used in the study are either
+included in the supplementary files or also deposited in a public repository
+and referenced.
+
+If you are able to fully address these points, we would encourage you to submit
+a revised manuscript to Genome Biology.  Once you have made the necessary
+corrections, please submit online at: http://gbio.edmgr.com/
+
+Please include a cover letter with a point-by-point response to the comments,
+describing any additional experiments that were carried out and including a
+detailed rebuttal of any criticisms or requested revisions that you disagreed
+with. Please also ensure that all changes to the manuscript are indicated in
+the text by highlighting or using track changes.
+
+We hope to receive your revised manuscript within the next six weeks or so.
+Please let us know if the delay is likely to be longer than six weeks, or if
+you have any problems or questions.
+
+I look forward to receiving your revised manuscript.
+
+Best wishes,
+Rafal
+
+
+Rafal Marszalek, PhD
+Senior Editor
+Genome Biology
+http://genomebiology.com
+
+
+Reviewer reports:
+
+>Reviewer #1: The submission by Haeussler et al. collates previously-reported
+>datasets and computational models to examine the on- and off-target effects of
+>sgRNAs. They incorporate their findings into a website, CRISPOR, and also
+>provide stand-alone code for those wishing to implement various algorithms
+>independently. The main value in this manuscript is the comparison of multiple
+>on-target prediction algorithms and off-target scoring schemes, not the least
+>of which was the likely-herculean effort to collect the relevant parts from
+>various publications and authors. This orgnization represents a valuable
+>resource to the community, although there are several critical issues that need
+>to be addressed before the manuscript would be suitable for publication.
+A "herculean effort", thanks for that.  Reviewer #1 had many good suggestions.
+We have never before received such an in-depth review. Thank you for your time!
+
+>Major Points
+
+>1) Unsurprisingly in a fast-moving field, several reports have recently
+>appeared that should be included to ensure that this publication is not
+>out-of-date before it even appears in print. (For example, it undermines the
+>statement in the introduction that they have evaluated "all existing" datasets,
+>pg. 5 line 34). In particular: 
+>a. Wang et al., Science, Nov. 2015
+Unfortunately, as they are a very recent dataset, Wang et al have already used
+their own scoring algorithm to select guides. Their guides have very high Wang
+scores. As a result, little information can be obtained from the correlation 
+between assay result and prediction. The correlation is relatively low, ~0.130,
+as a result. We have added to the methods:
+XXXX
+
+>Hart et al., Cell, Dec 2015 
+We saw Hart 2015 but didn't want to change our manuscript directly before the submission.
+The data is now added and it confirms the leading position of the Fusi et al score.
+This dataset is somewhat special in that it contains so much data. 
+WHY DID WE CHOOSE ONE TIMEPOINT AND AVG ?
+
+>  - Wang et al
+>  b. Mouse datasets from Koike-Yusa (NBT, 2014) and Doench (NBT, 2014) could also be evaluated.
+We had them in the data files but removed from the figures for conciseness. Now added again.
+
+>  c. Doench et al. Nature Biotech., Jan 2016 - In addition to providing more
+>  on-target data, this proposes an improved off-target scoring scheme that
+>  should be added in the comparisons in Figure 2. This report also encompasses
+>  the Fusi/Doench on-target rules that the authors have already included in
+>  their comparisons, which was originally available as a pre-print.
+Yes, this CFD score was already on the CRISPOR website during the review, but only visible in the 
+Excel downloadable tables. We have added it now to Figure 2 and indeed it is
+better than the MIT score.  However, and this is something we struggle to
+explain, when we're taking the sum of this new score, the total sum of all
+offtarget scores for a guide should give the specificity of the guide.  When we
+plotted this against the total number and total frequency of offtarget
+cleavage, the new score is not better for ranking guides than the old MIT
+score. This is why guides on the website are still ranked by MIT score, but
+off-targets are now ranked by CFD score.
+TODO: SHOW IN CRISPOR!
+
+>2) How do the authors distinguish between datasets of poor technical quality
+>vs. algorithms that do a poor job of predicting on-target activity? The
+>datasets they have used are quite different in their size, delivery mechanism,
+>whether they target endogenous genes or reporters, whether they select for loss
+>of protein function or cell death, etc. The authors should not assume that all
+>readers will be intimately familiar with these reports, so it would be
+>well-worth their time to discuss the potential strengths and pitfalls of each.
+>Related, a table could go a long way towards describing the features of various
+>datasets. This is a critical point, as many readers will focus on figure 4 as
+>the key take-away, which in its current form visually treats all datasets
+>equally.
+Supplemental Table 5 did summarize all datasets.
+
+>3) Figure four is quite critical. Given the distinction made multiple times in
+>the text about the differences between species (which may be methodological or
+>biological), the authors should consider either break this up into multiple
+>graphs (1 per species) or at least more clearly labeling the dataset name by
+>species. 
+
+>It might also be helpful to note where the scoring scheme is derived
+>from the same dataset, to minimize the contribution of potential overfitting to
+>the impression of the heatmap (perhaps including the value but coloring in
+>gray?) 
+
+>Also, the color scale goes from red to yellow to white, but at least my
+>eyes initially missed the idea that white was best -- I was visually drawn to
+>the most-red and most-yellow points, as white is usually "reserved" for points
+>in the middle of a range. 
+
+>Of course, there are other non-heat-map ways of presenting the data that might
+>be more valuable, especially if the groups are divided by species. To many
+>readers this is a critical take-home, so making sure the proper message is
+>conveyed is important.
+
+>4) The new human dataset they report ("Schonig") targets a plasmid introduced
+>into human cells, not endogenous genes, and thus may not be terribly
+>representative. This major caveat needs to be mention in main text, not just
+>methods. Likewise, the importance attributed to this new dataset in the text
+>doesn't match the scale of it. They use only 24 sgRNAs, and thus the size of
+>the dataset needs to be greatly expanded and assessed at endogenous loci if the
+>authors want to highlight this as a key finding (e.g. appearing in the
+>abstract) that is likely to generalize well or serve as a 'tiebreaker' between
+>different scoring algorithms.
+
+>5) The off-target analysis is nice, although the source of the poor performance
+>of several websites (as noted by Tsai et al.) was recently reported (Doench et
+>al. 2016). The removal of the two outlier guides from Tsai et al. is probably a
+>good idea, but would be best to carry it along for awhile and show they are
+>truly outliers, rather than dismiss them originally. Figure 2 might be a nice
+>place to do this.
+
+>6) For the off-target analysis, do the high AUCs achieved by the Hsu et al. MIT
+>score suggest that chromatin context does not plat a large role in determining
+>activity? The authors could comment.
+
+>7) I asked a colleague who is more versed in python to attempt to download and
+>run the relevant files, and she ran into difficulties. Her comments: "I could
+>not get the command line tool to run and ran into issues with BWA installation
+>and indexing of the human genome. I tried debugging a little but that didn't
+>help much and the code is throwing different errors now. The errors have
+>something to do with the BWA index files, I think. It would really help if they
+>included more documentation about BWA installation and getting the right index
+>files for the human/mouse genome. When I indexed the human genome using BWA, I
+>didn't get all the files they have in their sample S.cerevisiae index. Not sure
+>if it's a BWA version issue (they should probably mention the version they
+>recommend). An example input/output file would also be helpful."
+This is great - referees often do not look at source code at all. Thanks!
+
+Minor Points
+>1) Fig. 2: The two blue colors are difficult to distinguish; why do MIT score
+>for freq. >1% but not Cropit or CCTop or Hsu? Perhaps split into two panels,
+>one comparing the score with all data and one for >1%?
+
+>2) Fig. 3 uses CRISPOR Guide Specificity Score but nowhere in the main text do
+>they define what they are using to calculate this - I can assume it is the use
+>of BWA to find off-target sites and then the Hsu scoring scheme, but this
+>should be explicitly stated.
+
+>3) SFig3: legend says 4 and 5 mismatches, axis label says 5 and 6.
+
+Reviewer #2: 
+
+>2) The authors only included about 200 validated off-targets in their
+>comparative analysis. This is considered a small dataset, as one gRNA may be
+>associated with many off-targets at the genome level. In contrast, the training
+>datasets on potency analysis included thousands of gRNAs. The small dataset on
+>off-target analysis may not be able to provide an objective evaluation of
+>various algorithms.
+Finding unknown off-targets is much harder than quantifying known on-targets.
+200 off-targets is as much as all published off-target studies together have produced 
+until now. If 200 is not enough, then no one will be able in the near future to satisfy
+reviewer 2's standards.  We still think 200 are enough data to compare
+off-target scoring algorithms.
+
+>3) The authors used correlation coefficients to evaluate various algorithms for
+>prediction of gRNA efficiency. This is not likely a fair comparison. As
+>explicitly stated in the Doench study, the major goal of the scoring scheme was
+>to pick a few highly active gRNAs for further experimental studies, but not
+>about the overall correlation with all gRNA candidates. Thus, the authors
+>should pick a few top predictions from each algorithm and compare the
+>performance of these selected gRNAs with independent validation data.
+Yes, we agree. This is why supplemental figure 5 shows the results of a purely
+precision/recall based analysis when predicting the top 20%. The results 
+by and large match the correlation-based results.
+
+>4) The authors claimed that they included "all" available on-target efficiency
+>algorithms against "all" available datasets. This is not true. As far as I
+>known, multiple relevant algorithms are not referenced by this study. For
+>example, WU-CRISPR (Genome Biology, 2015), an algorithm to pick efficient
+>gRNAs, was not referenced by this study.
+While we did include WU-CRISPR in Fig4 ("wong" score), we did forget to add the
+reference to the article to the main text of the paper. Wong et al was
+published only shortly before our own submission, these modifications were made
+in a rush, sorry for that.
+
+You write "multiple relevant algorithms". Are you aware of any other algorithm 
+we did not include?
+
+
+>Further, this study is not the
+>"first" time to evaluate existing CRISPR design methods. Multiple published
+>studies have performed similar analyses, sometimes even by generating new
+>independent experimental datasets.
+We are unaware of an independent comparison of CRISPR scoring algorithms.
+Can you give us one reference? We know that authors of scoring
+datasets/algorithms have done their own comparisons, but that is not
+independent and limited to the Doench (efficiency) or the MIT off-target score.
+
+
