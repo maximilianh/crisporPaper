@@ -1,6 +1,6 @@
 # for each dataset, get the top25% and the bottom25% and assign labels 1.0 and 0.0
-# then get all scores for these sequences and write scores and labels to a file precRec/dataset-scoreType.tab
-# then use the R ROCR package and write the x and y values to a file
+# then get all scores for these sequences and write scores and labels to a file out/precRecData/dataset-scoreType.tab
+# then use the R ROCR package, make a precision/recall plot and write the x and y values to a file
 # precRec/dataset-scoreType.precRec.tab 
 # finally plot all these curves with matplotlib
 
@@ -14,7 +14,8 @@ import matplotlib
 #matplotlib.rcParams['pdf.fonttype'] = 42
 import matplotlib.pyplot as plt
 
-selDatasets = ["doench2014-Hs", "morenoMateos2015", "chari2015Train", "xu2015TrainHl60", "chariEval"]
+#selDatasets = ["doench2014-Hs", "morenoMateos2015", "chari2015Train", "xu2015TrainHl60", "chariEval", "hart2016HelaLib2_hg19"]
+selDatasets = ["xu2015TrainHl60", "xu2015TrainMEsc", "doench2014-Hs", "doench2014-Mm", "morenoMateos2015", "chari2015Train", "doench2016_hg19", "doench2016_mm9", "hart2016HelaLib2_hg19", "hart2016HelaLib1_hg19", "hart2016Hct1161lib1_hg19", "wang2015_hg19"]
 
 scoreDescs = {
     "wang" : "Wang Score2",
@@ -106,12 +107,12 @@ def writeRTables(outDir, datasetName):
     labels, allScores, allSeqs = readData(datasetName)
     writeSeqLabelsScores(allSeqs, labels, allScores, outDir, datasetName)
 
-def parseCoords(inDir, datasetName):
+def parseCoords(inDir, datasetName, plotType):
     """ parse all files in inDir/datasetName*.coords.tab and return as dict
         scoreName -> (xList, yList)
     """
     ret = {}
-    fnames = glob.glob(join(inDir, "%s_*.coords.tab" % datasetName))
+    fnames = glob.glob(join(inDir, "%s_*.%sCoords.tab" % (datasetName, plotType)))
     if len(fnames)==0:
         raise Exception("No filenames for dataset %s" % datasetName)
 
@@ -131,12 +132,14 @@ def parseCoords(inDir, datasetName):
 def runR(dataDir):
     " run R on all files in dataDir and generate the x/y coordinates "
     for inFname in glob.glob(join(dataDir, "*.tab")):
-        if "coords.tab" in inFname:
+        if "Coords.tab" in inFname:
             continue
-        outFname = inFname.replace(".tab", ".coords.tab")
+        outFname = inFname.replace(".tab", ".precRecCoords.tab")
         if isfile(outFname):
             continue
-        cmd = "Rscript precRecCurve.R %s %s"% (inFname, outFname)
+        outFname2 = inFname.replace(".tab", ".rocCoords.tab")
+        cmd = "Rscript precRecCurve.R %s %s %s"% (inFname, outFname, outFname2)
+        print cmd
         assert(os.system(cmd)==0)
 
 def plotCoords(coords, axis):
@@ -191,7 +194,6 @@ def makeChariEval():
                 continue
             filtSeqs.append(seq)
 
-        print "XXX", filtSeqs
         # make labels for them
         filtLabels = []
         for seq in filtSeqs:
@@ -222,15 +224,12 @@ def makeChariEval():
 
 def main():
     datasetNames = selDatasets
-    dataDir = "precRecData"
-
-    fig, axes = plt.subplots(1, len(datasetNames))
-    fig.set_size_inches(5*len(datasetNames), 5)
+    dataDir = "out/precRecData"
 
     if not isdir(dataDir):
         os.mkdir(dataDir)
+
     for datasetName in datasetNames:
-        #print "PROCESSING DATASET", datasetName
         if datasetName=="chariEval":
             labels, allScores, allSeqs = makeChariEval()
             writeSeqLabelsScores(allSeqs, labels, allScores, dataDir, datasetName)
@@ -238,20 +237,32 @@ def main():
             writeRTables(dataDir, datasetName)
         runR(dataDir)
 
-    for datasetName, axis in zip(datasetNames, axes):
-        coords = parseCoords(dataDir, datasetName)
-        plots, scoreNames = plotCoords(coords, axis)
-        axis.set_title(datasetDescs[datasetName])
-        axis.legend(plots, scoreNames, 'lower right', labelspacing=0, fontsize=10, ncol=2)
+    for plotType in ["precRec", "roc"]:
+        fig, axes = plt.subplots(1, len(datasetNames))
+        fig.set_size_inches(5*len(datasetNames), 5)
 
-    plt.tight_layout()
-    outfname = "temp.pdf"
-    plt.savefig(outfname)
-    print "wrote %s" % outfname
-    outfname = outfname.replace("pdf", "png")
-    plt.savefig(outfname)
-    print "wrote %s" % outfname
-    plt.close()
+        for datasetName, axis in zip(datasetNames, axes):
+            coords = parseCoords(dataDir, datasetName, plotType)
+            plots, scoreNames = plotCoords(coords, axis)
+            axis.set_title(datasetDescs[datasetName])
+            if plotType=="precRec":
+                axis.set_xlabel("recall")
+                axis.set_ylabel("precision")
+            else:
+                axis.set_xlabel("False positive rate")
+                axis.set_ylabel("True positive rate")
+
+            axis.legend(plots, scoreNames, 'lower right', labelspacing=0, fontsize=10, ncol=2)
+
+
+        plt.tight_layout()
+        outfname = "out/effScores-%s.pdf" % plotType
+        plt.savefig(outfname)
+        print "wrote %s" % outfname
+        outfname = outfname.replace("pdf", "png")
+        plt.savefig(outfname)
+        print "wrote %s" % outfname
+        plt.close()
 
 
 main()
