@@ -1,0 +1,1 @@
+less wang2015_SM_Table_S3.txt | cut -f1,4,6,8,10 | gawk '($2<0.01 && $3<0.01 && $4<0.01 && $5<0.01)' > essentialGenes.tsv
