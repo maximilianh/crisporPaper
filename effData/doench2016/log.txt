@@ -1,0 +1,5 @@
+echo -e 'guide\tseq\tmodFreq' > ../doench2016_mm9.guides.tab
+less Doench_nbt.3026-S5.csv | grep -v ^Supp | grep -v ^Seq | grep MUS | cut -f1,5,8 | tawk '{print $2"-"NR,$1,$3}' >> ../doench2016_mm9.guides.tab
+
+echo -e 'guide\tseq\tmodFreq' > ../doench2016_hg19.guides.tab
+less Doench_nbt.3026-S5.csv | grep -v ^Supp | grep -v ^Seq | grep -v MUS | cut -f1,5,8 | tawk '{print $2"-"NR,$1,$3}' >> ../doench2016_hg19.guides.tab
