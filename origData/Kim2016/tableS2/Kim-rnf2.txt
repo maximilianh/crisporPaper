@@ -1,0 +1,65 @@
+RNF2				
+Chr	Position	DNA cleavage Score	DNA seq at a cleavage sites	
+Chr1	185056773	69.6	GTCATCTTAGTCATTACCTGAGG	
+Chr12	131619805	12.3	aTCAcCTTAGcCATTACCaGGGG	
+Chr18	62061226	9.8	aTtATtTTAGTCATTACCTtTGG	
+Chr8	99451745	8.2	cgtgcaTTAGTCATTACCTGAGG	
+Chr7	43967267	7.0	acttatTTAGTCATTACCTGTAG	
+Chr6	143212079	6.7	GTaATaTTAGTCATTACCgGTGG	
+Chr4	171989625	5.9	taacaCaTAGTCAcTACCTGGTG	
+Chr8	5745882	5.8	aatATgTTAGTCATTACCTGAGG	
+Chr4	189725512	3.5	aTgcTtcTtGTCATTACCTtGGG	
+Chr9	138721895	3.2	acttcagTAGTCATTACCTaGGG	
+Chr5	92036966	3.0	GgtATCTaAGTCATTACCTGTGG	
+Chr15	25135467	3.5	catcTaaTAGTaATTACCTGGGG	
+Chr17	53928586	3.2	GTCATCTTAGTCATTAC-TGAGG	
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				

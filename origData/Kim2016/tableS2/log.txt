@@ -1,0 +1,1 @@
+cat *.txt | grep -v Position | grep Chr | cut -f4 | tr [:lower:] [:upper:] > digenome2Seqs.txt
