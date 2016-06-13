@@ -3,3 +3,6 @@ less Doench_nbt.3026-S5.csv | grep -v ^Supp | grep -v ^Seq | grep MUS | cut -f1,
 
 echo -e 'guide\tseq\tmodFreq' > ../doench2016_hg19.guides.tab
 less Doench_nbt.3026-S5.csv | grep -v ^Supp | grep -v ^Seq | grep -v MUS | cut -f1,5,8 | tawk '{print $2"-"NR,$1,$3}' >> ../doench2016_hg19.guides.tab
+#wget http://www.nature.com/nbt/journal/v34/n2/extref/nbt.3437-S2.zip
+egrep '(guide)|(CCDC101)|(CUL3)|(HPRT1)|(MED12)|(NF1)|(NF2)|(TADA1)|(TADA2B)' doench2016plx_hg19.context.tab > ../doench2016plx_hg19.context.tab
+egrep '(guide)|(CCDC101)|(CUL3)|(HPRT1)|(MED12)|(NF1)|(NF2)|(TADA1)|(TADA2B)' doench20166tg_hg19.context.tab > ../doench20166tg_hg19.context.tab

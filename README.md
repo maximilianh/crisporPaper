@@ -1,3 +1,21 @@
+Required software
+=================
+
+* python2.7 with pip 
+  * brew install python
+  * apt-get install python2.7
+* matplotlib and scipy 
+  * pip install matplotlib scipy
+* R 
+  * brew tap homebrew/science; brew install r
+* gplots, colorbrewer, ROCR and e1071
+  * Rscript -e 'install.packages(c("gplots", "RColorBrewer","ROCR","e1071"),  repos="http://cran.rstudio.com/")'
+* limma
+  * Rscript -e 'source("https://bioconductor.org/biocLite.R"); biocLite("limma")'
+
+The "crisporWebsite" github repo has to be located in ../crisporWebsite. This because the scripts in here need the 
+crispor python libraries for the scoring.
+
 Offtarget-prediction
 ====================
 
@@ -64,21 +82,25 @@ plotVenn.py: Creates out/venn.pdf
         Input are offtargets.tsv
         = SUPPL FIGURE S2: venn diagram of EMX1 VEGFA off-target overlaps.
         Also creates SUPPL FILES 2 (EMX) and 3 (VEGFA) with the details of the overlaps.
+        (tabCat commands in log.txt)
 
-plotGuideMismatchCount.py: Creates out/specScoreMMComp.pdf 
+plotSpecScoreChange.py: Creates out/specScoreMMComp.pdf 
         = SUPPL FIGURE S3. 
-        Input are out/offtargetsFilt.tsv and the files in crisporOfftargets/,
+        Input are out/annotFiltOfftargets.tsv and the files in crisporOfftargets/,
         cropitOfftargets/ and mitOfftargets/.
 
 plotMismatchFraction.py : creates a plot off-target strength versus mismatch count
         = FIGURE 1 
         Input: out/offtargetsFilt.tsv and the files in crisporOfftargets/
         Output: out/out/mismatchFraction-all.pdf
+        With the argument "supp", shows only the two Tsai outliers in the plot.
 
 plotRoc.py: create ROC plot 
         = FIGURE 2
         Input: the files in crisporOfftargets, mitOfftargets and cropitOfftargets
         Output: out/roc.pdf
+        With the argument "supp", it adds a dataset "with two outliers" to the ROC plot
+        (question by referee)
 
 compareOfftargetTools.py: 
         Creates a table with MIT versus CRispor versus CassOffFinder.
@@ -144,10 +166,11 @@ compEffScores.py
         out/compEffScores-valid.pdf
 
 plotHeat.R: 
-        Creates the heatmap of spearman correlations 
+        Creates the heatmap of correlations 
         Input: out/effScoreComp.tsv
-        Output: out/heatData.tsv and out/heatMap.pdf
-        = FIGURE 4
+        Output: out/heatData.tsv and out/heatMap.pdf and .png
+               out/heatMap-2.pdf and .png
+        = FIGURE 4 and FIGURE 5
         This is an R script!
         Has to be run with "Rscript plotHeat.R" unlike all other scripts.
 
@@ -163,6 +186,11 @@ binClass.py
         Input: effData/*.scores
         Output: out/binClassMetrics.tsv, with precision, recall and f1 
         values for every combination of score and dataset.
+
+plotPrecRecall.py:
+        plot precision recall for SUPPLEMENTAL FIGURE 5
+        Input: out/binClassMetrics.tsv
+        Output: 
 
 monteCarloAlena.py
 monteCarloSchoenig.py
@@ -184,12 +212,16 @@ calcSvmScores.py: calculate all possible SVM scores and write them to a cache fi
         don't have to startup R again. SVM scores are relatively slow to calculate.
 calcChariScores.py: same, for Chari et al SVM scores.
 
+plotBigRocPrecRecall.py: create ROC and precision-recall plots for all big datasets (based on cell cultures)
+        -> SUPPLEMENTAL FIGURE 7
 
 compareOfftargetTools.py: compare MIT, CRISPOR and CassOffFinder to figure out which
         off-targets MIT is missing and how they are distributed over the mismatches.
 
 corrActivityOof.py: determine correlation between KO activity and the Bae et al OOF score for all datasets
         in the effData directory. 
+
+compHartParameters.py: obtain correlations of all Hart 2016 cell-culture+timepoint against all scores
 
 The efficiency studies are:
 
@@ -200,12 +232,25 @@ chari2015Train.tab
 chari2015Valid + seven different cell lines
 doench2014-Hs.tab
 doench2014-Mm.tab
+
 farboud2015.tab
 gagnon2014.tab
+
 ren2015.tab
 liu2016.tab
 varshney2015.tab
+
 xu2015.tab
+
 museumIC50.tab
 museumT7.tab
 
+Add another efficiency score file
+=================================
+
+* create a file `effData/dataset_genome.guides.tab` with the columns guide, seq, modFreq
+* make sure you have /gbdb/genome/genome.2bit and /gbdb/genome/genome.sizes (fetchChromSizes from UCSC if needed or via rsync from hgdownload.soe.ucsc.edu)
+* run python effDataAddContext.py, will create `effData/dataset_genome.context.tab`
+* run python effDataAddScores.py, will create `effData/dataset_genome.scores.tab`
+* run python compEffScores.py, will create out/compEffScores-*.pdf and .png and out/effScoreComp.tsv
+* run Rscript plotHeat.R, will create out/heatMap*.pdf and .png

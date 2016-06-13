@@ -1,0 +1,7 @@
+received email.tsv from Lydia Teboul
+
+first two columns had to be replaced with NA due to data privacy requests from customers.
+
+Had to remove one guide due to coauthorship demands from this customer.
+
+
