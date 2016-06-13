@@ -6,9 +6,11 @@ import numpy as np
 
 scores = defaultdict(list)
 for fname in glob.glob("effData/*.scores.tab"):
+    if "hart" in fname and "Avg" not in fname:
+        continue
     print "reading", fname
     for row in iterTsvRows(fname):
-        for scoreType, score in zip(row._fields[7:], row[7:]):
+        for scoreType, score in zip(row._fields[7:], row[7:22]):
             score = float(score)
             # make sure doench score are not the old ones in the range 0-1.0
             if scoreType=="doench" and score < 1.0 and score!=-1 and score!=0.0:

@@ -4,10 +4,10 @@
 from annotateOffs import *
 import glob
 import sys
-sys.path.insert(0, "../crispor")
+sys.path.insert(0, "../crisporWebsite")
 from crisporEffScores import *
 
-setBinDir("../crispor/bin")
+setBinDir("../crisporWebsite/bin")
 setCacheDir("./out/")
 
 for fname in glob.glob("effData/*.context.tab"):
@@ -25,7 +25,8 @@ for fname in glob.glob("effData/*.context.tab"):
         newRow = [dataset, row.guide, row.seq, row.modFreq, row.db, row.pos, row.longSeq]
         newRows.append(newRow)
 
-    scores = calcAllScores(seqs, doAll=True)
+    scores = calcAllScores(seqs, doAll=True) # removed for the Doench2016 dataset, does not go through the Fusi API
+    #scores = calcAllScores(seqs, addOpt=["wangOrig"])
     # add a drsc score to stay compatible with older scripts call housden drsc
     scores["drsc"] = scores["housden"]
     scoreNames = sorted(scores.keys())

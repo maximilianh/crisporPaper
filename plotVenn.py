@@ -135,7 +135,7 @@ def main():
         #]
     overlapGuides = []
     for targetSeq, studyOffs in seqs.iteritems():
-        print targetSeq, studyOffs.keys(), seqNames[targetSeq]
+        #print targetSeq, studyOffs.keys(), seqNames[targetSeq]
         parts = seqNames[targetSeq].split("_")
         if len(parts)==2:
             name = parts[-1]
@@ -143,10 +143,12 @@ def main():
             name = parts[1]+" "+parts[2]
         if len(studyOffs)>=2:
             overlapGuides.append( (targetSeq, name) )
-    print overlapGuides
+    #print overlapGuides
 
-    fig, axArr = plt.subplots(len(overlapGuides), 1)
-    fig.set_size_inches(5,25)
+    #plotCount = plt.subplots(len(overlapGuides), 1)
+    plotCount = 2
+    fig, axArr = plt.subplots(plotCount, 1)
+    fig.set_size_inches(5,plotCount*5)
 
     studyDescs = {
         "Tsai" : "GuideSeq\n(Tsai et al, HEK293)",
@@ -156,7 +158,11 @@ def main():
         "Kim16" : "DigenomeSeq2\n(Kim et al 2016, HeLa)",
     }
 
-    for plotRow, (guideSeq, guideName) in enumerate(overlapGuides):
+    plotRow = 0
+    for (guideSeq, guideName) in overlapGuides:
+        if guideName not in ["EMX1", "VEGFA site1"]:
+            continue
+
         print "guide: ",guideName
         studySeqs = seqs[guideSeq]
 
@@ -177,11 +183,11 @@ def main():
             for otSeq, otFreq in seqInfo:
                 if float(otFreq)!=0.0:
                     studyOts.add(otSeq)
+            print "offtarget-count:", len(studyOts)
             sets.append(set(studyOts))
 
         if len(sets)==3:
-            #print sets
-            #assert(False)
+            #print guideName, sets, labels, ax
             venn3(subsets=sets, set_labels=labels, ax=ax, labelSize="small")
             ax.set_title(guideName)
         elif len(sets)==2:
@@ -190,6 +196,8 @@ def main():
         else:
             print len(sets)
             assert(False)
+
+        plotRow += 1
 
 
     fig.tight_layout()

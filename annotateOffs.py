@@ -55,32 +55,42 @@ datasetToGenome = {
 # the most important datasets and their descriptions
 mainDataDescs = {
      'varshney2015': "Varshney Zebrafish",
+     'varshney2015mutF1': "Varshney Zebrafish (F1)",
+     'varshney2015mutF0': "Varshney Zebrafish (F0)",
      'ren2015': "Ren Drosophila Training",
      'xu2015TrainHl60': "Wang/Xu KO Training",
-     'xu2015TrainMEsc': "Wang/Xu KO Mouse Training",
-     'gagnon2014': "Gagnon Zebrafish",
+     'xu2015TrainMEsc': "Koike-Yusa/Xu KO Training",
+     'gagnon2014': "Gagnon",
      'chari2015Train':"Chari Training",
      'chari2015Valid_293T':"Chari Validation",
      'doench2014-Hs': "Doench 2014 Human",
      'doench2016_hg19': 'Doench 2016 Human',
-     'doench2016_mm9': 'Doench 2016 Mouse',
+     'doench2016azd_hg19': 'Doench 2016 A375/AZD',
+     'doench20166tg_hg19': 'Doench 2016 A375/6TG',
+     'doench2016plx_hg19': 'Doench 2016 A375/PLX',
      'museumIC50':  "Concordet IC50",
      'xu2015AAVS1': "Xu Validation AAVS1",
      'xu2015FOX-AR': "Xu Validation FOX/AR",
      'schoenig': u'Sch\u00F6nig LacZ',
      'farboud2015' : "Farboud C.elegans Training",
-     'eschstruth' : "Eschstruth Zebrafish        ",
+     'eschstruth' : "Eschstruth Zebrafish",
      'morenoMateos2015' : "Moreno-Mateos Training",
      'alenaAll' : "Shkumatava Dataset",
      'housden2015' : "Housden Dros. Training",
-     'ghandi2016_ci2' : "Ghandi Ciona"
+     'ghandi2016_ci2' : "Gandhi Ciona",
+    'hart2016-Hct1162lib1Avg' : "Hart Hct116-2L1",
+    'teboulVivo_mm9' : "Teboul In Vivo",
+    'concordet2' : "Concordet",
      }
 
 datasetDescs = {
     "xu2015Train": "Wang/Xu",
+     'doench2016azd_hg19': 'Doench 2016 A375/AZD',
     "xu2015TrainHl60": "Wang/Xu HL60",
     "xu2015TrainKbm7": "Wang/Xu KBM7",
-    "xu2015TrainMEsc": "Wang/Xu MEsc",
+    "xu2015TrainMEsc": "Koike-Yusa/Xu Mouse ESC",
+    'xu2015TrainMEsc1': "Koike-Yusa/Xu 1 Mouse ESC",
+    'xu2015TrainMEsc2': "Koike-Yusa/Xu 2 Mouse ESC",
     "doench2016_hg19": "Doench 2016 Human",
     "doench2016_mm9": "Doench 2016 Mouse",
     "doench2014-Hs": "Doench 2014 MOLM13/NB4/TF1",
@@ -89,21 +99,23 @@ datasetDescs = {
     "doench2014-CD33Exon2": "Doench 2014 CD33 Exon2",
     "doench2014-CD33Exon3": "Doench 2014 CD33 Exon3",
     "doench2014-CD13Exon10": "Doench 2014 CD13 Exon10",
-    "varshney2015": "Varshney Zebrafish",
-    "gagnon2014": "Gagnon Zebrafish",
+    "varshney2015": "Varshney",
+    "varshney2015mutF1": "Varshney Zebrafish (F1)",
+    "varshney2015mutF0": "Varshney Zebrafish (F0)",
+    "gagnon2014": "Gagnon",
     "xu2015": "Xu Validation",
     "xu2015FOX-AR": "Xu KO Validation FOX/AR",
     "xu2015AAVS1": "Xu T7 Validation AAVS1",
     "ren2015": "Ren Drosophila",
     "farboud2015": "Farboud C. elegans",
-    "morenoMateos2015": "Moreno-Mateos Zebrafish",
+    "morenoMateos2015": "Moreno-Mateos",
     "museumT7": "Concordet Indel T7",
     "museumIC50": "Concordet Indel IC50",
-    "schoenig": "Schoenig Indel LacZ Rank",
-    "eschstruth": "Eschstruth Indel T7 Rank",
+    "schoenig": "Schoenig K562 LacZ Rank",
+    "eschstruth": "Eschstruth Zebrafish",
     "chari2015Train": "Chari Human",
     "chari2015Train293T": "Chari 293T",
-    "alenaAll": "Shkumatava Lab",
+    "alenaAll": "Shkumatava Zebrafish",
     "alenaOthers": "Shkumatava Lab: Helene/Yuvia/Antoine",
     "alenaPerrine": "Shkumatava Lab: Perrine",
     "alenaHelene": "Shkumatava Lab: Helene",
@@ -111,14 +123,25 @@ datasetDescs = {
     "alenaAntoine": "Shkumatava Lab: Antoine",
     "alenaYuvia": "Shkumatava Lab: Yuvia",
     "alenaAngelo": "Shkumatava Lab: Angelo",
-    "concordet2-Hs": "Conc2 Hs",
-    "concordet2-Mm": "Conc2 Mm",
-    "concordet2-Rn": "Conc2 Rn",
-    "concordet2": "Concordet2 Hs/Mm/Rn",
-    "chari2015TrainK562": "Chari Human K562",
+    "concordet2-Hs": "Concordet Human",
+    "concordet2-Mm": "Concordet Mouse",
+    "concordet2-Rn": "Concordet Rat",
+    "concordet2": "Concordet U2OS/MEF/C6 T7Endo",
+    "chari2015TrainK562": "Chari K562",
     "liu2016_mm9": "Liu Neuro2A Surveyor 1/0",
-    "ghandi2016_ci2" : "Ghandi Ciona Electroporation",
-    "chariEval" : "Chari and Wong Eval Set"
+    "ghandi2016_ci2" : "Gandhi Ciona Electroporation",
+    'wang2015_hg19' : "Wang 2015",
+    'doench2016_hg19' : "Doench 2016 Human",
+    'doench2016_mm9' : "Doench 2016 Mouse",
+    'hart2016HelaLib2_hg19' : "Hart Hela Lib 2",
+    'hart2016HelaLib1_hg19' : "Hart Hela Lib 1",
+    'hart2016Hct1161lib1_hg19' : "Hart Hct116-1 Lib 1",
+    'hart2016-Hct1162lib1Avg' : "Hart Hct116-2 Lib 1",
+    'hart2016-Hct1161lib1Avg' : "Hart Hct116-1 Lib 1",
+    'hart2016-Rpe1Avg' : "Hart Rpe",
+    "chariEval" : "Chari Eval. Set (279 guides)",
+    "teboulVivo_mm9" : "Teboul Mouse In Vivo",
+    "teboulVitro_mm9" : "Teboul In Vitro"
 }
 
 # a list of all possible score names in our preferred order
@@ -871,7 +894,7 @@ def parseOfftargets(fname, maxMismatches, onlyAlt, validPams):
             skipCount += 1
             continue
         if validPams!=None and not row.otSeq[-2:] in validPams:
-            print "not using off-target %s/%s, PAM is not NGG/NGA/NAG" % (row.name, row.otSeq)
+            print "not using off-target %s/%s, PAM is not in %s" % (row.name, row.otSeq, validPams)
             continue
 
         guideSeqs[row.name] = row.guideSeq
@@ -957,6 +980,7 @@ def parseMit(dirName, guideSeqs):
     return data
 
 def calcOtScores(predScores, scoreFunc):
+#def calcOtScores(predScores, scoreFunc, notNone=False):
     """
     convert a dict guideSeq -> otSeq -> otScore from the MIT otScore to another
     Score. possible scoring functions are:
@@ -970,8 +994,13 @@ def calcOtScores(predScores, scoreFunc):
         #print "Converting guide %s" % guideSeq
         guideDict = dict()
         for otSeq, otScore in otDict.iteritems():
-            #guideDict[otSeq] = calcCfdScore(guideSeq, otSeq)
-            guideDict[otSeq] = scoreFunc(guideSeq, otSeq)
+            assert("N" not in otSeq)
+            newScore = scoreFunc(guideSeq, otSeq)
+            assert(newScore is not None)
+            #if notNone:
+                #print "Ignoring score None for guideSeq/otSeq = %s, %s" % (guideSeq, otSeq)
+                #continue
+            guideDict[otSeq] = newScore
         newScores[guideSeq] = guideDict
     return newScores
 
@@ -979,6 +1008,7 @@ def parseCrispor(dirName, guideNames, maxMismatches):
     """ parse crispor output files, return as dict guideSeq -> ot seq -> otScore 
     Also return a dict with guideName -> guideSeq
     guideNames can be None, in which case all data is read.
+    Skips all off-targets that contain an N-character (only 4 out of 1E6)
     """
     print("Parsing CRISPR results from dir %s" % dirName)
     predScores = defaultdict(dict)
@@ -998,6 +1028,9 @@ def parseCrispor(dirName, guideNames, maxMismatches):
                 continue
             if "hap" in row.chrom or "random" in row.chrom or "chrUn" in row.chrom:
                 #print "strange chrom, skipping %s" % str(row)
+                continue
+            if "N" in row.offtargetSeq:
+                print "illegal offtarget sequence %s" % row.offtargetSeq
                 continue
             guideName = splitext(basename(fname))[0]
             try:
@@ -1905,7 +1938,9 @@ def revcom(s):
 
 #Calculates CFD score
 def calc_cfd(wt,sg,pam):
-    mm_scores,pam_scores = get_mm_pam_scores()
+    #global mm_scores, pam_scores
+    #if mm_scores is None:
+    #mm_scores,pam_scores = get_mm_pam_scores()
     score = 1
     sg = sg.replace('T','U')
     wt = wt.replace('T','U')
@@ -1931,6 +1966,10 @@ def calcCfdScore(guideSeq, otSeq):
     >>> calcCfdScore("GGGGGGGGGGGGGGGGGGGGGGG", "aaaaGaGaGGGGGGGGGGGGGGG")
     0.5140384614450001
     """
+    assert(len(guideSeq)==23)
+    assert(len(otSeq)==23)
+    #assert("N" not in guideSeq)
+    #assert("N" not in otSeq)
     global mm_scores, pam_scores
     if mm_scores is None:
         mm_scores,pam_scores = get_mm_pam_scores()
@@ -1943,6 +1982,8 @@ def calcCfdScore(guideSeq, otSeq):
         sg = off[:-3]
         cfd_score = calc_cfd(wt,sg,pam)
         return cfd_score
+    print m_wt, m_off, guideSeq, otSeq
+    assert(False)
         #print "CFD score: "+str(cfd_score)
 
 # ==== END CFD score source provided by John Doench

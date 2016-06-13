@@ -15,7 +15,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 #selDatasets = ["doench2014-Hs", "morenoMateos2015", "chari2015Train", "xu2015TrainHl60", "chariEval", "hart2016HelaLib2_hg19"]
-selDatasets = ["xu2015TrainHl60", "xu2015TrainMEsc", "doench2014-Hs", "doench2014-Mm", "morenoMateos2015", "chari2015Train", "doench2016_hg19", "doench2016_mm9", "hart2016HelaLib2_hg19", "hart2016HelaLib1_hg19", "hart2016Hct1161lib1_hg19", "wang2015_hg19"]
+#selDatasets = ["xu2015TrainHl60", "xu2015TrainMEsc", "doench2014-Hs", "doench2014-Mm", "morenoMateos2015", "chari2015Train", "doench2016azd_hg19", "hart2016HelaLib2_hg19", "hart2016HelaLib1_hg19", "hart2016Hct1161lib1_hg19", "wang2015_hg19"]
+selDatasets = ["xu2015TrainHl60", "xu2015TrainMEsc", "doench2014-Hs", "doench2014-Mm", "morenoMateos2015", "chari2015Train", "doench2016azd_hg19", "hart2016HelaLib2_hg19", "hart2016HelaLib1_hg19", "hart2016Hct1161lib1_hg19"]
 
 scoreDescs = {
     "wang" : "Wang Score2",
@@ -238,10 +239,10 @@ def main():
         runR(dataDir)
 
     for plotType in ["precRec", "roc"]:
-        fig, axes = plt.subplots(1, len(datasetNames))
-        fig.set_size_inches(5*len(datasetNames), 5)
+        fig, axes = plt.subplots(3, 4)
+        fig.set_size_inches(20, 15)
 
-        for datasetName, axis in zip(datasetNames, axes):
+        for datasetName, axis in zip(datasetNames, fig.axes):
             coords = parseCoords(dataDir, datasetName, plotType)
             plots, scoreNames = plotCoords(coords, axis)
             axis.set_title(datasetDescs[datasetName])
@@ -252,7 +253,7 @@ def main():
                 axis.set_xlabel("False positive rate")
                 axis.set_ylabel("True positive rate")
 
-            axis.legend(plots, scoreNames, 'lower right', labelspacing=0, fontsize=10, ncol=2)
+            axis.legend(plots, scoreNames, loc="lower right", fontsize=8, ncol=2)
 
 
         plt.tight_layout()

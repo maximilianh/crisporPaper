@@ -13,6 +13,10 @@ from annotateOffs import *
 
 from collections import defaultdict
 
+# by default we're plotting the ratio of off to on-target cutting
+# an alternative is to plot just the counts
+doFreq = False
+
 def parseOtRatios():
     otCounts = defaultdict(int)
     gcCounts = defaultdict(int)
@@ -39,8 +43,8 @@ def parseOtRatios():
         otCounts[row.name]+=1
         offtargetFreqs[row.name] += freq
 
-    offtargetFreqs["Ran_EMX1-sg1"] = 0.0
-    offtargetFreqs["Ran_EMX1-sg2"] = 0.0
+    #offtargetFreqs["Ran_EMX1-sg1"] = 0.0
+    #offtargetFreqs["Ran_EMX1-sg2"] = 0.0
 
     #for row in iterTsvRows("origData/Ran2015/convertNoSeq.tab"):
         #freq = float(row.score)
@@ -53,15 +57,18 @@ def parseOtRatios():
     #print "ontarget", ontargetFreqs["Ran_EMX1-sg2"]
     #print "offtarget", offtargetFreqs["Ran_EMX1-sg2"]
 
-    offtargetRatios = {}
-    for name, ontargetFreq in ontargetFreqs.iteritems():
-        offtargetFreq = offtargetFreqs[name]
-        ratio = offtargetFreq / ontargetFreq
+    if doFreq:
+        offtargetRatios = {}
+        for name, ontargetFreq in ontargetFreqs.iteritems():
+                offtargetFreq = offtargetFreqs[name]
+                ratio = offtargetFreq / ontargetFreq
+                offtargetRatios[name] = ratio
+    else:
+        offtargetRatios = otCounts
         #ratio = ontargetFreq / offtargetFreq
         #if offtargetFreq==0.0:
             #continue
 
-        offtargetRatios[name] = ratio
     print "missing from plot: %s" % (allGuides - set(offtargetRatios))
     print "total number of guides used: %d" % len(offtargetRatios)
     print
@@ -81,8 +88,8 @@ studyGuides = defaultdict(list)
 for name in otRatios:
     gcCount = gcCounts[name]
     study = name.split("_")[0]
-    yVal = otRatios[name]
     studyX[study].append(gcCount)
+    yVal = otRatios[name]
     studyY[study].append(yVal)
     studyGuides[study].append(name)
 
@@ -95,6 +102,10 @@ studyNames = []
 gs  = gridspec.GridSpec(2, 1, height_ratios=[1, 5])
 ax = plt.subplot(gs[0])
 ax2 = plt.subplot(gs[1])
+
+figRaw = plt.figure()
+axRaw = figRaw.add_subplot(111)
+
 #f,(ax,ax2) = plt.subplots(2,1,sharex=True)
 
 studies = studyX.keys()
@@ -111,6 +122,8 @@ for study in studies:
             marker=markers[i], \
             s=30, \
             color=colors[i])
+        axRaw.scatter(xVals, yVals, marker=markers[i], s=30, color=colors[i])
+
     figs.append(studyFig)
     studyNames.append(study)
     i+=1
@@ -126,6 +139,12 @@ for study in studies:
                       xy = (x, y), xytext = (-7,0), alpha=1.0,
                       textcoords = 'offset points', va = 'bottom')
 
+           if y > 10:
+               axRaw.annotate(
+                  study+":"+guideName, fontsize=9, rotation=0, ha="right", rotation_mode="anchor",
+                  xy = (x, y), xytext = (-7,0), alpha=1.0,
+                  textcoords = 'offset points', va = 'bottom')
+
 plt.legend(figs,
        studyNames,
        scatterpoints=1,
@@ -133,6 +152,20 @@ plt.legend(figs,
        ncol=1,
        fontsize=10)
 
+# full figure, not broken axis
+outfname = "out/gcOtCount_raw.pdf"
+if doFreq:
+    axRaw.set_ylim(-3,60)
+figRaw.savefig(outfname, format = 'pdf')
+figRaw.savefig(outfname.replace(".pdf", ".png"))
+print "wrote out/gcOtCount_raw.pdf / .png"
+# - END - full figure, not broken axis
+
+outfname = "out/gcOtCount.pdf"
+plt.savefig(outfname, format = 'pdf')
+plt.savefig(outfname.replace(".pdf", ".png"))
+
+print "wrote out/gcOtCount.pdf / .png"
 ax.set_ylim(20,55) # outliers only
 ax2.set_ylim(-.5,10) # most of the data
 

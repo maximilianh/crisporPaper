@@ -78,6 +78,13 @@ def plotScores(ax, scores, guideFreqs, scoreType, annotate, diam, doLegend=False
         plotX.append(x)
         plotY.append(y)
 
+    # do not plot more than 3000 dots, makes PDF very slow to display
+    #if len(plotX)>3000:
+        #print "Sampling scatter plot points down to 3000 points"
+        #allDots = [x, y for x, y in zip(plotX, plotY)]
+        #allDots = random.sample(allDots, 3000)
+        #plotX, plotY = zip(*allDots)
+
     ax.scatter(plotX, plotY, alpha=.5, marker="o", s=diam, linewidth=0)
 
     if scoreType in ["wang", "wangOrig"]:
@@ -88,15 +95,15 @@ def plotScores(ax, scores, guideFreqs, scoreType, annotate, diam, doLegend=False
         ax.set_xlim(0, 100.0)
 
     slope, intercept, r_value, p_value, std_err = linregress(regrX,regrY)
-    print "score type %s: Pearson R %f" % (scoreType, r_value)
+    print "score type %s: Pearson R %f, P %f" % (scoreType, r_value, p_value)
     line = slope*np.asarray(regrX)+intercept
     ax.plot(regrX,line, linestyle='-', color="orange")
 
     pearR, pearP = pearsonr(regrX, regrY)
     spearR, spearP = spearmanr(rankdata(regrX), rankdata(regrY))
     #mwU, mwP = mannwhitneyu(regrX, regrY)
-    ret = spearR
     #ret = pearR
+    ret = spearR
 
     #ax.annotate(r'Pearson R = %0.3f (p %0.3f)' % (pearR, pearP) + '\n' + r'Spearman $\rho$ = %0.3f (p %0.3f)' % (spearR, spearP) + "\nMann-Whitney U=%d (p=%0.3f)" % (int(mwU), mwP), xy=(0.40,0.08), fontsize=9, xycoords='axes fraction')
     ax.annotate(r'Pearson R = %0.3f (p %0.3f)' % (pearR, pearP) + '\n' + r'Spearman $\rho$ = %0.3f (p %0.3f)' % (spearR, spearP), xy=(0.40,0.06), fontsize=9, xycoords='axes fraction')
@@ -132,17 +139,6 @@ def plotDataset(datasetName, ax, title, yLabel="Knock-out efficiency", annotate=
 
     print ("plotting %s" % datasetName)
     scores, freqs = parseEffScores(datasetName)
-    #  reduce scores to 2000, can't see more than 2000 elements anyways
-    #if len(scores)>2000:
-        #print("Sampling down to 2000 data points")
-        #sampleSeqs = random.sample(scores, 2000)
-        #newScores = {}
-        #newFreqs = {}
-        #for s in sampleSeqs:
-            #newScores[s] = scores[s]
-            #newFreqs[s] = freqs[s]
-        #scores, freqs = newScores, newFreqs
-
     ax[0].set_ylabel(yLabel)
 
     corrs = []
@@ -189,24 +185,42 @@ def plotLargeScale(corrFname):
     scoreCorrFh = open(corrFname, "w")
     scoreCorrFh.write("dataset\t%s\n" % "\t".join([scoreDescs[st] for st in scoreTypes]))
 
-    plotFname = "out/compEffScores-train.pdf" 
+    plotFname = "out/compEffScores-train.pdf"
 
-    rowCount = 11
+    rowCount = 25
     fig, axArr = plt.subplots(rowCount, len(scoreTypes))
+    axArr = list(axArr)
     fig.set_size_inches(len(scoreTypes)*5,rowCount*5)
-    #plotDataset("xu2015Train", axArr[0], "hg19", "Wang 2014\nhuman HL-60\nAs used by Xu 2015", diam=2, addColLabels=True, yLabel="-log2 sgRNA fold change")
-    plotDataset("xu2015TrainHl60", axArr[0], "Wang 2014\nhuman HL-60\nAs used by Xu 2015", diam=2, addColLabels=True, yLabel="-log2 sgRNA fold change")
-    plotDataset("xu2015TrainMEsc", axArr[1], "Wang 2014\nmice mEsc\nAs used by Xu 2015", diam=2, addColLabels=True, yLabel="-log2 sgRNA fold change")
-    #plotDataset("xu2015TrainKbm7", axArr[1], "Wang 2014\nhuman KBM7\nAs used by Xu 2015", diam=2, addColLabels=True, yLabel="-log2 sgRNA fold change")
-    plotDataset("doench2014-Hs", axArr[2], "Doench 2014\nhuman MOLM13, NB4, TF1", diam=2, yLabel="rank-percent", ylim=(0,1.0))
-    plotDataset("doench2014-Mm", axArr[3], "Doench 2014\nmouse EL4", diam=2, yLabel="rank-percent", ylim=(0,1.0))
-    plotDataset("chari2015Train293T", axArr[4], "Chari 2015\nhuman 293T", diam=2, yLabel="Mutation Rate", ylim=(0,2.0))
-    plotDataset("chari2015TrainK562", axArr[5], "Chari 2015\nhuman K562", diam=2, yLabel="Mutation Rate")
-    plotDataset("wang2015_hg19", axArr[6], "Wang 2015 Human", diam=1, yLabel="Log-Fold Change")
-    plotDataset("doench2016_hg19", axArr[7], "Doench 2016\nhuman", diam=2, yLabel="rank-percent", ylim=(0,1.0))
-    plotDataset("doench2016_mm9", axArr[8], "Doench 2016\nmouse", diam=2, yLabel="rank-percent", ylim=(0,1.0))
-    plotDataset("hart2016HelaLib1_hg19", axArr[9], "Hart 2016\nHela lib 1", diam=2, yLabel="T18B log fold change")
-    plotDataset("hart2016Hct1161lib1_hg19", axArr[10], "Hart 2016\nHct116 lib 1", diam=2, yLabel="T18B log fold change")
+
+    plotDataset("xu2015TrainHl60", axArr.pop(0), "Wang 2014\nhuman HL-60\nProcessed by Xu 2015", diam=2, addColLabels=True, yLabel="-log2 sgRNA fold change")
+    plotDataset("xu2015TrainMEsc1", axArr.pop(0), "Wang 2014\nmice mEsc rep 1\nProcessed by Xu 2015", diam=2, addColLabels=True, yLabel="-log2 sgRNA fold change")
+    plotDataset("doench2014-Hs", axArr.pop(0), "Doench 2014\nhuman MOLM13, NB4, TF1", diam=2, yLabel="rank-percent", ylim=(0,1.0))
+    plotDataset("doench2014-Mm", axArr.pop(0), "Doench 2014\nmouse EL4", diam=2, yLabel="rank-percent", ylim=(0,1.0))
+    plotDataset("chari2015Train293T", axArr.pop(0), "Chari 2015\nhuman 293T", diam=2, yLabel="Mutation Rate", ylim=(0,2.0))
+    plotDataset("chari2015TrainK562", axArr.pop(0), "Chari 2015\nhuman K562", diam=2, yLabel="Mutation Rate")
+    plotDataset("wang2015_hg19", axArr.pop(0), "Wang 2015 Human", diam=1, yLabel="Log-Fold Change")
+    plotDataset("doench2016azd_hg19", axArr.pop(0), "Doench 2016\nA375-ETP", diam=1, yLabel="log-fold change")
+    #plotDataset("doench20166tg_hg19", axArr.pop(0), "Doench 2016\nA375-6TG", diam=1, yLabel="log-fold change")
+    plotDataset("doench2016plx_hg19", axArr.pop(0), "Doench 2016\nA375-PLX", diam=1, yLabel="log-fold change")
+    plotDataset("hart2016-Rpe1Avg", axArr.pop(0), "Hart 2016\nRpe1", diam=2, yLabel="avg. log fold change")
+    plotDataset("hart2016-Hct1161lib1Avg", axArr.pop(0), "Hart 2016\nHct116, lib 1, rep 1", diam=2, yLabel="avg. log fold change over all time points")
+    plotDataset("hart2016-Hct1162lib1Avg", axArr.pop(0), "Hart 2016\nHct116, lib 1, rep 2", diam=2, yLabel="avg. log fold change over all time points")
+
+    plotDataset("morenoMateos2015", axArr.pop(0), "Moreno-Mateos 2015\nZebrafish RNA injection", diam=3)
+    plotDataset("varshney2015", axArr.pop(0), "Varshney 2015\nZebrafish RNA injection")
+    plotDataset("gagnon2014", axArr.pop(0), "Gagnon 2014\nZebrafish RNA injection")
+    plotDataset("liu2016_mm9", axArr.pop(0), "Liu 2016\nMouse Neuro2A, surveyor in-vitro", yLabel="1/0 = effective or not")
+    plotDataset("ren2015", axArr.pop(0),  "Ren 2015\nDrosophila injection")
+    plotDataset("housden2015", axArr.pop(0),  "Housden 2015\nDrosophila S2R+ cells\nLuciferase-assay")
+    plotDataset("farboud2015", axArr.pop(0),  "Farboud 2015\nC. elegans injection")
+    plotDataset("ghandi2016_ci2", axArr.pop(0), "Ghandi 2016\nCiona electroporation", yLabel="mutated percent")
+    #plotDataset("concordet2-Hs", axArr.pop(0),  "Concordet-Lab\nU2OS, T7 endonucl., gel", yLabel="% modified")
+    #plotDataset("concordet2-Mm", axArr.pop(0), "Concordet-Lab\nMEF, T7 endonucl., gel", yLabel="% modified")
+    plotDataset("concordet2", axArr.pop(0), "Concordet-Lab\nMEF, U2OS, C6\nT7 Endonucl.", yLabel="% modified")
+    plotDataset("schoenig", axArr.pop(0),  "Schoenig\nK562\nLipofection (K2), bGal assay\nbGal: Wefers, PNAS 2013", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
+    plotDataset("alenaAll", axArr.pop(0),  "Shkumatava Lab\nZebrafish\nInjection", yLabel="Mod. frequency from < 20 sequenced clones", ylim=(0,100))
+    plotDataset("eschstruth", axArr.pop(0),  "Eschstruth\nZebrafish\nInjection", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
+    plotDataset("teboulVivo_mm9", axArr.pop(0),  "Teboul/Mianne Mouse in vivo singles", yLabel="% of embryos with mutation")
 
     i = 5
     global datasetDescs
@@ -227,7 +241,7 @@ def plotLargeScale(corrFname):
 def plotSmallScale():
     # plot small-scale studies
 
-    figCount = 20
+    figCount = 28
     fig, axArr = plt.subplots(figCount, len(scoreTypes), sharey="row")
     axArr = list(axArr)
     fig.set_size_inches(len(scoreTypes)*5,figCount*4)
@@ -239,7 +253,7 @@ def plotSmallScale():
     plotDataset("doench2014-Hs", axArr.pop(0), "Doench 2014\nhuman MOLM13, NB4, TF1", diam=2, yLabel="rank-percent", ylim=(0,1.0))
     plotDataset("doench2014-Mm", axArr.pop(0), "Doench 2014\nmouse EL4", diam=2, yLabel="rank-percent", ylim=(0,1.0))
     plotDataset("chari2015Train293T", axArr.pop(0), "Chari 2015\nhuman 293T", diam=2, yLabel="Mutation Rate", ylim=(0,2.0))
-    #plotDataset("chari2015TrainK562", axArr.pop(0), "Chari 2015\nhuman K562", diam=2, yLabel="Mutation Rate")
+    plotDataset("chari2015TrainK562", axArr.pop(0), "Chari 2015\nhuman K562", diam=2, yLabel="Mutation Rate")
 
     plotDataset("xu2015FOX-AR", axArr.pop(0), "Xu 2015 validation\nLNCaP-abl cells, FOX/AR locus\nLentivirus, Western Blot", addColLabels=True)
     plotDataset("xu2015AAVS1",  axArr.pop(0), "Xu 2015 validation\nLNCaP-abl cells, AAVS1 locus\nLentivirus, T7", addColLabels=True)
@@ -256,9 +270,13 @@ def plotSmallScale():
     #plotDataset("doench2014-CD33Exon3", axArr.pop(0), "hg19", "Doench\nNB4 cells\nCD33 Exon3", yLabel="sgRNA fold enrichment")
     #plotDataset("doench2014-CD13Exon10", axArr.pop(0), "hg19", "Doench\nNB4 cells\nCD13 Exon10", yLabel="sgRNA fold enrichment")
     plotDataset("morenoMateos2015", axArr.pop(0), "Moreno-Mateos 2015\nZebrafish RNA injection", diam=3)
+    #plotDataset("varshney2015mutF0", axArr.pop(0), "Varshney 2015\nZebrafish RNA injection")
     plotDataset("varshney2015", axArr.pop(0), "Varshney 2015\nZebrafish RNA injection")
+    #plotDataset("varshney2015mutF1", axArr.pop(0), "Varshney 2015\nZebrafish RNA injection")
     plotDataset("gagnon2014", axArr.pop(0), "Gagnon 2014\nZebrafish RNA injection")
     plotDataset("liu2016_mm9", axArr.pop(0), "Liu 2016\nMouse Neuro2A, surveyor in-vitro", yLabel="1/0 = effective or not")
+    #plotDataset("concordet2-Hs", axArr.pop(0),  "Concordet-Lab\nU2OS, T7 endonucl., gel", yLabel="% modified")
+    #plotDataset("concordet2-Mm", axArr.pop(0), "Concordet-Lab\nMEF, T7 endonucl., gel", yLabel="% modified")
     plotDataset("ren2015", axArr.pop(0),  "Ren 2015\nDrosophila injection")
     plotDataset("housden2015", axArr.pop(0),  "Housden 2015\nDrosophila S2R+ cells\nLuciferase-assay")
     plotDataset("farboud2015", axArr.pop(0),  "Farboud 2015\nC. elegans injection")
@@ -269,15 +287,15 @@ def plotSmallScale():
     plotDataset("schoenig", axArr.pop(0),  "Schoenig\nK562\nLipofection (K2), bGal assay\nbGal: Wefers, PNAS 2013", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
     plotDataset("alenaAll", axArr.pop(0),  "Shkumatava Lab\nZebrafish\nInjection", yLabel="Mod. frequency from < 20 sequenced clones", ylim=(0,100))
     #plotDataset("alenaOthers", axArr.pop(0),  "Shkumatava Lab Others\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    #plotDataset("alenaPerrine", axArr.pop(0),  "Shkumatava Lab Perreine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    #plotDataset("alenaHelene", axArr.pop(0),  "Shkumatava Lab Helene\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    #plotDataset("alenaYuvia", axArr.pop(0),  "Shkumatava Lab Yuvia\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    #plotDataset("alenaAntoine", axArr.pop(0),  "Shkumatava Lab Antoine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
-    #plotDataset("alenaAngelo", axArr.pop(0),  "Shkumatava Lab Angelo", yLabel="Mod. frequency", ylim=(0,100))
-    #plotDataset("alenaHAP", axArr.pop(0),  "Shkumatava: Henele/Antoine/Perrine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    plotDataset("alenaPerrine", axArr.pop(0),  "Shkumatava Lab Perreine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    plotDataset("alenaHelene", axArr.pop(0),  "Shkumatava Lab Helene\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    plotDataset("alenaYuvia", axArr.pop(0),  "Shkumatava Lab Yuvia\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    plotDataset("alenaAntoine", axArr.pop(0),  "Shkumatava Lab Antoine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
+    plotDataset("alenaAngelo", axArr.pop(0),  "Shkumatava Lab Angelo", yLabel="Mod. frequency", ylim=(0,100))
+    plotDataset("alenaHAP", axArr.pop(0),  "Shkumatava: Henele/Antoine/Perrine\nZebrafish\nInjection", yLabel="Mod. frequency", ylim=(0,100))
     plotDataset("eschstruth", axArr.pop(0),  "Eschstruth\nZebrafish\nInjection", yLabel="relative rank: 3 (best), 2 or 1", yTicks=[1,2,3])
-    #plotDataset("concordet2-Hs", axArr.pop(0),  "")
-    #plotDataset("concordet2-Mm", axArr.pop(0), "mm9", "")
+    #plotDataset("teboulVitro_mm9", axArr.pop(0),  "Teboul/Mianne Mouse In-vitro singles", yLabel="% modified")
+    plotDataset("teboulVivo_mm9", axArr.pop(0),  "Teboul/Mianne Mouse in vivo singles", yLabel="% of embryos with mutation")
     #plotDataset("concordet2-Rn", axArr.pop(0), "rn5", "")
     #plotDataset("concordet2", axArr.pop(0),  "Concordet\nhuman/mouse/rat, cellType?\nDelivery?", yLabel="relative rank: 3(best), 2 or 1")
 
@@ -299,5 +317,6 @@ def main():
 
     plotLargeScale("out/effScoreComp.tsv")
     plotSmallScale()
+    scoreCorrFh.close()
 
 main()

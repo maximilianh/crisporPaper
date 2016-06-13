@@ -26,6 +26,8 @@ def parseOtCounts(fname):
     for row in iterTsvRows(fname):
         rf = float(row.readFraction)
 
+        if rf==0.0:
+            rf = 0.0001
         if rf>0.01:
             strongOffs[row.name]+=1
         #if rf>0.001:
@@ -76,7 +78,7 @@ def makeBubblePlot(ax, xVals, yVals, areas):
 
     ax.set_xticks(range(0, 101, 20))
     ax.set_xlim(0,100)
-    ax.set_ylim(0,70)
+    ax.set_ylim(-2,70)
 
     # invisible markers, needed for legend
     legPlots = []
@@ -96,7 +98,7 @@ def makeBubblePlot(ax, xVals, yVals, areas):
         )
 
     # add legend
-    leg1 = ax.legend(legPlots, ["0.1%", "0.5%", "1%", "5%", "10%", "30%", "50%", "70%", "90%"],
+    leg1 = ax.legend(legPlots, ["< 0.1%", "< 0.5%", "< 1%", "< 5%", "< 10%", "< 30%", "< 50%", "< 70%", "< 90%"],
            loc='upper right',
            #bbox_to_anchor=(1.15, 1), loc=2, borderaxespad=0., \
            ncol=1,
@@ -140,17 +142,16 @@ def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCo
     # left subplot: scatter plot with bubble sizes
     f.set_size_inches(10,4)
     leg1 = makeBubblePlot(axarr[0], xValsMit, yValsWeak, areas)
-    xlab = axarr[0].set_xlabel("%s Guide Specificity Score" % suffix)
+    xlab = axarr[0].set_xlabel("MIT Specificity Score calculated by %s" % suffix)
     axarr[0].set_ylabel("Off-targets found per guide", color="black")
-    axarr[0].set_xlim(0, 91)
-    axarr[0].set_xticks(range(0, 91, 10))
+    axarr[0].set_xlim(0, 100)
+    axarr[0].set_xticks(range(0, 101, 10))
     axarr[0].annotate('A', xy=(-.10, -.15), xycoords='axes fraction', fontsize=16,
                     horizontalalignment='right', verticalalignment='bottom')
 
     # right subplot: a histogram
-    axarr[1].set_xlabel("%s Guide Specificity Score" % suffix)
+    axarr[1].set_xlabel("MIT Specificity Score calculated by %s" % suffix)
     mitHistXVals = np.array(mitHistXVals)
-    print mitHistYVals
     genomeBars = axarr[1].bar(mitHistXVals+2, mitHistYVals, 3, edgecolor='white', color="green" , lw=1)
     otBars = axarr[1].bar(mitHistXVals+3+2, otCountsHistMit, 3, edgecolor='white', color="blue" , lw=1)
     YMAX=45
@@ -176,10 +177,31 @@ def makeTwoSubplots(xValsMit, yValsWeak, areas, mitHistXVals, mitHistYVals, otCo
     print "wrote plot to %s, added .png" % plotFname
     plt.close()
 
+def parseOfftargets(fname, maxMismatches):
+    """ parse the annotated validated off-target table and return as dict
+    guideSeq -> otSeq -> modifFreq and another dict guideName -> guideSeq
+    """
+    otScores = defaultdict(dict)
+    guideSeqs = dict()
+    print "parsing %s" % fname
+    skipCount = 0
+    for row in iterTsvRows(fname):
+        if int(row.mismatches)>maxMismatches:
+            skipCount += 1
+            continue
+
+        guideSeqs[row.name] = row.guideSeq
+        frac = float(row.readFraction)
+        if frac==0.0:
+            frac = 0.00001 # even if Hsu and 0.0, make sure they show up somehow.
+        otScores[row.guideSeq][row.otSeq] = float(row.readFraction)
+    print "Skipped %d rows with more than %d mismatches" % (skipCount, maxMismatches)
+    return otScores, guideSeqs
+
 def main():
     maxMismatches = 4
     # get guide sequences and their offtargets 
-    guideValidOts, guideSeqs = parseOfftargets("out/annotOfftargets.tsv", maxMismatches, False, None)
+    guideValidOts, guideSeqs = parseOfftargets("out/annotOfftargets.tsv", maxMismatches)
 
     # get sum of off-target frequencies
     strongOtCounts, weakOtCounts, otShareSum = parseOtCounts("out/annotOfftargets.tsv")
@@ -230,7 +252,7 @@ def main():
         if mitScore==100:
             mitScore=99
         otCountsHistMit[mitScore/10] += 1
-        print guideName, crisporScore
+        #print "XX", guideName, crisporScore
         otCountsHistCrispor[crisporScore/10] += 1
         areas.append(otShareSum[guideName])
 
@@ -238,6 +260,7 @@ def main():
         rows.append(row)
 
     rows.sort()
+    print "Number of guides:", len(guideSeqs)
 
     # transform to frequencies in %
     otCountsHistMit = [100*x / float(len(guideSeqs)) for x in otCountsHistMit]

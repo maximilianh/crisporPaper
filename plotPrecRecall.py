@@ -9,7 +9,7 @@ from annotateOffs import *
 from collections import defaultdict
 import random
 
-scoreNames = ['doench', 'ssc', 'crisprScan', 'wangOrig', 'chariRank', 'fusi', "drsc", 'finalGc6', 'finalGg', "wuCrispr"]
+scoreNames = ['doench', 'ssc', 'crisprScan', 'wangOrig', 'chariRank', "wuCrispr", 'fusi', 'finalGc6', 'finalGg']
 # doench = regression
 # ssc = regression
 # crisprScan = regression
@@ -26,13 +26,17 @@ dataSubs = {
      'doench2014-Hs': ("MOLM13/NB4/TF1", "Lentivir.",  'KO'),
      #'museumIC50':  ("?", "?", "?"),
      'xu2015AAVS1': ("LNCap-abl", "Lentivir.", "West.Blot"),
-     'xu2015FOX-AR': ("LNCap-abl", "Lentivir.", "T7"),
+     'xu2015FOX-AR': ("LNCap-abl", "Lentivir.", "T7 Endonucl."),
      'schoenig': ("K562", "betaGal-assay", "betaGal"),
      'farboud2015' : ("Zebrafish", "Injection", "Sequencing"),
-     'eschstruth' : ("Zebrafish", "Injection", "T7"),
+     #'eschstruth' : ("Zebrafish", "Injection", "T7 Endonucl."),
      'morenoMateos2015' : ("Zebrafish", "Injection", "Sequencing"),
      'alenaAll' : ("Zebrafish", "Injection", "Sanger Seq"),
-     'housden2015' : ("Dros. S2R+", "Transfection", "Lucif.")
+     'hart2016-Hct1162lib1Avg' : ("Hct116 2", "Lentivir.", "Sequencing"),
+     'ghandi2016_ci2' : ("Ciona", "Electroporation", "Sequencing"),
+     'teboulVivo_mm9' : ("Mouse", "Injection", "Mutant Embryos"),
+     'concordet2' : ("U2OS/MEF/C6", "Electrop.", "T7 Endon."),
+     #'housden2015' : ("Dros. S2R+", "Transfection", "Lucif.")
     }
 topDatasets = [
      'xu2015TrainHl60',
@@ -40,14 +44,16 @@ topDatasets = [
      'chari2015Train',
      'farboud2015',
      'ren2015',
-     'housden2015',
-     'morenoMateos2015'
+     #'housden2015',
+    'hart2016-Hct1162lib1Avg',
+    'ghandi2016_ci2',
     ]
 
 middleDatasets = [
     #'xu2015AAVS1',
     #'xu2015FOX-AR',
     #'chari2015Valid_293T',
+     'morenoMateos2015',
     "varshney2015",
     "gagnon2014"
 ]
@@ -65,10 +71,10 @@ scoreDescs = {
     "ssc" : "Xu (Wang)",
     "chariRank" : "Chari Rank",
     "crisprScan" : "Moreno-Mateos",
-    "fusi" : "Fusi (Doench)",
+    "fusi" : "Fusi/Doench",
     "chariRaw" : "Chari",
     "finalGc6" : "Ren: 3'GC>4",
-    "drsc" : "Housden",
+    #"drsc" : "Housden",
     "wuCrispr" : "Wong",
     #"finalGc2" : "Farboud-like, last 2 bp GC",
     "finalGg" : "Farboud: -GG",
@@ -132,12 +138,12 @@ def parseData(fname):
 
 def plot(scores, dataNames, dataCountInfo, outfname):
     " "
-    plt.figure(figsize=(6,10))
+    plt.figure(figsize=(8,12))
     plt.rcParams['ytick.major.pad']='8'
 
     plots = []
-    colors = list(reversed(["blue", "red", "orange", "magenta", "orange", "grey", "orange", "black", "black", "lightblue"]))
-    markers = list(reversed(["^", "^", "^", "o", "o",  "s", "s", "x", "+", "^"]))
+    colors = list(reversed(["blue", "red", "orange", "magenta", "orange", "red", "blue", "black", "black"]))
+    markers = list(reversed(["^",   "^",   "^",      "o",       "o",      "s",    "s",      "x",      "+" ]))
 
     fig, axArr = plt.subplots(1, 2, sharey=True)
 

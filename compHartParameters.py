@@ -56,6 +56,7 @@ def parseOnlyEffScores(inFname):
         guideSeq = row.seq[:20]
         scores[seq]["finalGc6"] = int(annotateOffs.countFinalGc(guideSeq, 6)>=4)
         scores[seq]["finalGg"] = int(guideSeq[-2:]=="GG")
+        scores[seq]["modFreq"] = float(row.modFreq)
 
         #freq = float(row.modFreq)
         #freqs[seq] = freq
@@ -70,13 +71,19 @@ def addAvg(seqFoldChanges, timePoints):
         for t in timePoints:
             s += timeToFold[t]
         timeToFold["avg"] = float(s)/len(timeList)
+
+        s = 0
+        for t in timePoints:
+            if t.startswith("T18"):
+                s += timeToFold[t]
+        timeToFold["AvgLate"] = float(s)/len(timeList)
     return seqFoldChanges
 
 def main():
-    geneSets = []
-    for fname in ["essentialSymsInFiveCellLines.txt", "core-essential-genes-sym_HGNCID", "essential_sym_hgnc.csv"]:
-        geneSet = parseGenes("effData/hart2016/essGenes/"+fname)
-        geneSets.append( (fname.split(".")[0]+"/"+str(len(geneSet)), geneSet) )
+    #geneSets = []
+    #for fname in ["essentialSymsInFiveCellLines.txt", "core-essential-genes-sym_HGNCID", "essential_sym_hgnc.csv"]:
+        #geneSet = parseGenes("effData/hart2016/essGenes/"+fname)
+        #geneSets.append( (fname.split(".")[0]+"/"+str(len(geneSet)), geneSet) )
 
     rows = []
     for line in open("effData/hart2016/fileNames.txt"):
@@ -89,7 +96,6 @@ def main():
 
         seqFoldChanges, timePoints1 = parseTab("effData/hart2016/TKOFoldChange/"+foldChangeFname)
         readCounts, timePoints2 = parseTab("effData/hart2016/readCounts/readcount-"+readFname)
-        seqPredScores = parseOnlyEffScores("effData/hart2016/mapped/%s_hg19.scores.tab" % datasetName)
 
         print "possible time points in folds: %s, time points in reads: %s" % (timePoints1, timePoints2)
         allTimePoints = set(timePoints1).intersection(timePoints2)
@@ -99,64 +105,75 @@ def main():
         readCounts = addAvg(readCounts, allTimePoints)
 
         print "all time points: ", allTimePoints
-        allTimePoints.add("avg")
+        allTimePoints.add("Avg")
 
-        headers = ["libraryName", "essentialGeneList", "minReads", "minFoldChange", "timepoint", "guideCountPass"]
+        #headers = ["libraryName", "essentialGeneList", "minReads", "minFoldChange", "timepoint", "guideCountPass"]
+        #headers = ["libraryName", "minReads", "minFoldChange", "timepoint", "guideCountPass"]
+        headers = ["libraryName", "minReads", "timepoint", "guideCountPass"]
 
-        for geneSetName, genes in geneSets:
-            for minReads in [0, 300, 1000]:
-                for minFoldChange in [0.0, 5.0]:
-                    #for timepoint in ["T12B", "T15B", "T18B", "avg"]:
-                    for timepoint in allTimePoints:
+        #for geneSetName, genes in geneSets:
+        for minReads in [0, 100, 300]:
+            #for minFoldChange in [0.0, 5.0]:
+            #for minFoldChange in [0.0, 5.0]:
+                #for timepoint in ["T12B", "T15B", "T18B", "avg"]:
+            for timepoint in allTimePoints:
+                seqPredScores = parseOnlyEffScores("effData/%s%s.scores.tab" % (datasetName, timepoint))
 
-                        row = [datasetName, geneSetName, minReads, minFoldChange, timepoint]
-                        print "processing %s" % str(row)
-                        predScores = defaultdict(list)
-                        foldChanges = []
-                        #for seq, thisPredScores in seqFoldChanges.iteritems():
-                        for seq, thisPredScores in seqPredScores.iteritems():
-                            # check gene
-                            gene = seqToGene[seq]
-                            if gene not in genes:
-                                continue
-                            # check foldChange
-                            foldChangeTimePoints = seqFoldChanges.get(seq)
-                            if foldChangeTimePoints is None:
-                                #print "%s has no fold change data but has been mapped" % seq
-                                continue
+                #row = [datasetName, geneSetName, minReads, minFoldChange, timepoint]
+                row = [datasetName, minReads, timepoint]
+                print "processing %s" % str(row)
+                predScores = defaultdict(list)
+                foldChanges = []
+                #for seq, thisPredScores in seqFoldChanges.iteritems():
+                for seq, thisPredScores in seqPredScores.iteritems():
+                    # check gene
+                    gene = seqToGene[seq]
+                    #if gene not in genes:
+                        #continue
+                    # check foldChange
+                    #foldChangeTimePoints = seqFoldChanges[seq]["modFreq"]
+                    #if foldChangeTimePoints is None:
+                        #print "%s has no fold change data but has been mapped" % seq
+                        #continue
 
-                            foldChange = -foldChangeTimePoints[timepoint]
-                            if foldChange < minFoldChange:
-                                continue
-                            # check reads at T0
-                            if int(readCounts[seq]["T0"]) < minReads:
-                                continue
+                    #foldChange = -foldChangeTimePoints[timepoint]
+                    foldChange = seqPredScores[seq]["modFreq"]
+                    #if foldChange < minFoldChange:
+                        #continue
+                    # check reads at T0
+                    if int(readCounts[seq]["T0"]) < minReads:
+                        continue
 
-                            # seq is accepted:
-                            # add all pred scores and the fold change
-                            for scoreName, val in thisPredScores.iteritems():
-                                predScores[scoreName].append(val)
-                            foldChanges.append(foldChange)
+                    # seq is accepted:
+                    # add all pred scores and the fold change
+                    for scoreName, val in thisPredScores.iteritems():
+                        predScores[scoreName].append(val)
+                    foldChanges.append(foldChange)
 
-                        if len(predScores)==0:
-                            #print "no data for %s" % str(row)
-                            continue
-                        #assert(len(predScores)!=0)
-                        #assert(len(foldChanges)==len(predScores))
-                        # guideCountPass
-                        row.append(len(foldChanges))
+                if len(predScores)==0:
+                    #print "no data for %s" % str(row)
+                    continue
+                #assert(len(predScores)!=0)
+                #assert(len(foldChanges)==len(predScores))
+                # guideCountPass
 
-                        for scoreName, predScoreList in predScores.iteritems():
-                            #print "XX", scoreName, len(predScoreList)
-                            assert(len(predScoreList)==len(foldChanges))
-                            corr, pVal = pearsonr(predScoreList, foldChanges)
-                            if scoreName not in headers:
-                                headers.append(scoreName)
-                            corr = "%0.3f" % corr
-                            row.append(corr)
-                        row = [str(x) for x in row]
-                        rows.append(row)
-                        #print "\t".join(row)
+                # some of the filtering critera leave us with 5 genes.
+                # just skip these
+                if len(foldChanges)<300:
+                    continue
+                row.append(len(foldChanges))
+
+                for scoreName, predScoreList in predScores.iteritems():
+                    #print "XX", scoreName, len(predScoreList)
+                    assert(len(predScoreList)==len(foldChanges))
+                    corr, pVal = pearsonr(predScoreList, foldChanges)
+                    if scoreName not in headers:
+                        headers.append(scoreName)
+                    corr = "%0.3f" % corr
+                    row.append(corr)
+                row = [str(x) for x in row]
+                rows.append(row)
+                #print "\t".join(row)
 
     #ofh = open(sys.argv[1], "w")
     ofh = open("out/hartParams.tab", "w")

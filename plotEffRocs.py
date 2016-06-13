@@ -15,7 +15,7 @@ def main():
     fig.set_size_inches(5, 30)
 
     #fnames = glob.glob("effData/*.ext.tab")
-    datasets = ["xu2015Train", "doench2014-Hs", "doench2014-Mm", "varshney2015", "gagnon2014", "xu2015", "ren2015"]
+    datasets = ["xu2015TrainHl60", "doench2014-Hs", "doench2014-Mm", "varshney2015", "gagnon2014", "xu2015", "ren2015"]
     for row, dataset in enumerate(datasets):
         #dataset = basename(fname).split(".")[0]
         seqScores, guideFreqs = parseEffScores(dataset)
@@ -30,7 +30,7 @@ def main():
         effVals = [koScore for name, koScore in guideFreqs.values()]
         effCutoff = np.percentile(effVals, 80)
 
-        scoreTypes = ["svm", "doench", "ssc", "chariRaw", "finalGc6"]
+        scoreTypes = ["wang", "doench", "ssc", "chariRaw", "finalGc6"]
         colors = ["red", "black", "blue", "green", "orange"]
         lineTypes = ["-", "--", "-.", ":", "-", "--"]
 

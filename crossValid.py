@@ -70,16 +70,10 @@ models = [ \
     ("RF-regression", RandomForestRegressor()), \
     ("Ridge-Regression", linear_model.Ridge(alpha=0.1)) \
     ]
-models = [ \
-    #("DPGMM", DPGMM(n_components=5, covariance_type='diag', alpha=100, n_iter=100)), \
-    #("DPGMM", DPGMM(n_components=5, covariance_type='diag', alpha=100, n_iter=100)), \
-    #("GMM", GMM(n_components=10, covariance_type="tied", init_params='wc', n_iter=20)),
-    ("lasso", linear_model.Lasso(alpha=0.01)) \
-    ]
 
 #xList, yList = parseTab("effData/varshney2015.tab")
 #xList, yList = parseTab("effData/gagnon2014.tab")
-datasets = ["meta", "doench2014-Hs", "xu2015Train", "chari2015Train", "varshney2015", "gagnon2014"]
+datasets = ["meta", "doench2014-Hs", "xu2015Train", "chari2015Train", "varshney2015", "gagnon2014", "doench2016_hg19"]
 #, "schoenig", "museumT7", "farboud2015", "ren2015"]
 for dataset in datasets:
     if dataset=="meta":

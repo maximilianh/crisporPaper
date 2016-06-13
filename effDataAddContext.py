@@ -144,8 +144,12 @@ def mapAndExtend20Mers():
     """
     for fname in glob.glob("effData/*.guides.tab"):
         outFname = fname.replace(".guides.tab", ".context.tab")
+        scoreFname = fname.replace(".guides.tab", ".scores.tab")
         if isfile(outFname):
             print "already there, %s" % outFname
+            continue
+        if isfile(scoreFname):
+            print "already there, %s" % scoreFname
             continue
 
         print "working on %s" % fname

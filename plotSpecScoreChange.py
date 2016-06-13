@@ -104,7 +104,8 @@ def main():
             continue
         doneSeqs.add(guideSeq)
         xVals, yVals = [], []
-        for maxMm in range(6,4, -1):
+        #for maxMm in range(6,4, -1):
+        for maxMm in range(6,3, -1):
             if maxMm in scoreCache[guideName]:
                 specScore = scoreCache[guideName][maxMm]
             else:
@@ -112,8 +113,8 @@ def main():
                 scoreCache[guideName][maxMm] = specScore
             xVals.append(maxMm)
             yVals.append(specScore)
-            if maxMm==5:
-                annotateXys.append( (maxMm, specScore, guideName) )
+            if maxMm==4:
+                annotateXys.append( (maxMm, specScore-0.5, guideName) )
 
         fig = plt.plot(xVals, yVals, \
             color="k", \
@@ -137,7 +138,7 @@ def main():
     #plt.xlabel("Spec. Score using off-targets with 3, 4 or 5 mismatches")
     plt.ylabel("Specificity Score")
     outfname = "out/specScoreMMComp"
-    plt.xlim(4.5, 6.1)
+    plt.xlim(3.5, 6.1)
     plt.ylim(0, 97)
     fig = matplotlib.pyplot.gcf()
     fig.set_size_inches(5.5, 10)

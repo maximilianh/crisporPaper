@@ -68,14 +68,20 @@ def getBestCombGuides(guides):
     assert(len(topGuides)==2)
     return topGuides
 
-def getBestPredGuides(guides):
+def getBestTwoPredGuides(guides):
     " return a set of guides predicted by score1 "
     guides.sort()
     topGuides = []
     # take top2 based on primary score
     topGuides.extend(guides[-2:])
-    #locusGuides.sort(key=operator.itemgetter(1))
-    #topGuides.extend(locusGuides[-2:])
+    return topGuides
+
+def getBestPredGuide(guides):
+    " return a set of guides predicted by score1 "
+    guides.sort()
+    topGuides = []
+    # take top2 based on primary score
+    topGuides.extend(guides[-1:])
     return topGuides
 
 def getRndGuides(guides):
@@ -83,10 +89,28 @@ def getRndGuides(guides):
     random.shuffle(guides)
     return guides[:2]
 
+print "Shkumatava lab zebrafish dataset"
 scoreData, guideCount = parseGuides("effData/alenaAll.scores.tab")
 topFreqs = getTopFreqs(scoreData)
 print "Strategy: pick 2 guides with highest Moreno-Mateos score"
-successCount = countSuccesses(scoreData, topFreqs, getBestPredGuides)
+successCount = countSuccesses(scoreData, topFreqs, getBestTwoPredGuides)
+#successCount = countSuccesses(scoreData, topFreqs, getBestCombGuides)
+print "success: ", successCount, "out of", len(scoreData), "loci"
+
+n = 100000
+rndSuccCount = 0
+for i in range(0, n):
+    rndCount = countSuccesses(scoreData, topFreqs, getRndGuides)
+    if rndCount >= successCount:
+        rndSuccCount +=1
+print "pVal", rndSuccCount / float(n)
+
+# copied for the Teboul dataset
+print "Teboul in-vivo dataset"
+scoreData, guideCount = parseGuides("effData/teboulVivo_mm9.scores.tab")
+topFreqs = getTopFreqs(scoreData)
+print "Strategy: pick 1 guide with highest Moreno-Mateos score"
+successCount = countSuccesses(scoreData, topFreqs, getBestPredGuide)
 #successCount = countSuccesses(scoreData, topFreqs, getBestCombGuides)
 print "success: ", successCount, "out of", len(scoreData), "loci"
 

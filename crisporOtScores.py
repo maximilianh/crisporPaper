@@ -587,7 +587,7 @@ def calc_cfd(wt,sg,pam):
     >>> calc_cfd("GGGGGGGGGGGGGGGGGGGG", "GGGGGGGGGGGGGGGGGGGG", "GG")
     1.0
     """
-    mm_scores,pam_scores = get_mm_pam_scores()
+    #mm_scores,pam_scores = get_mm_pam_scores()
     score = 1
     sg = sg.replace('T','U')
     wt = wt.replace('T','U')
