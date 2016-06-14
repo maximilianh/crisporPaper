@@ -2,7 +2,6 @@ wc -l {schoenig*,ren*,museumT7,farboud*,varshney*,gagnon*}.ext.tab
  tabCat schoenigHs.scores.tab schoenigMm.scores.tab schoenigRn.scores.tab > schoenig.scores.tab
  tabCat concordet2-*.scores.tab > concordet2.scores.tab
  tabCat schoenig*.scores.tab > schoenig.scores.tab
- tabCat chari2015Train293T.scores.tab chari2015TrainK562.scores.tab doench2014-Hs.scores.tab doench2014-Mm.scores.tab farboud2015.scores.tab gagnon2014.scores.tab morenoMateos2015.scores.tab ren2015.scores.tab schoenig.scores.tab varshney2015.scores.tab xu2015.scores.tab xu2015AAVS1.scores.tab xu2015FOX-AR.scores.tab xu2015TrainHl60.scores.tab xu2015TrainKbm7.scores.tab hart2016-Hct1162lib1Avg.scores.tab concordet2-Hs.scores.tab concordet2-Mm.scores.tab ghandi2016_ci2.scores.tab liu2016_mm9.scores.tab teboulVivo_mm9.scores.tab alenaAll.scores.tab | sed -e 's/ghandi/gandhi/g' | sed -e 's/alena/shkumatava/g'> ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile2.tsv 
 
 # very little overlap between chari and xu
 tabCat xu2015TrainHl60.scores.tab chari2015Train293T.scores.tab | cut -f3 | tabUniq -rs --minCount=1| cut -f1 
@@ -10,3 +9,6 @@ tabCat xu2015TrainHl60.scores.tab chari2015Train293T.scores.tab | cut -f3 | tabU
 tabCat alenaAngelo.scores.tab alenaYuvia.scores.tab alenaHAP.scores.tab > alenaAll.scores.tab
 tabCat alenaAngelo.scores.tab alenaHAP.scores.tab > alenaAll.scores.tab
 tabCat alenaAngelo.scores.tab alenaHAP.scores.tab | grep -v Antoine > alenaAll.scores.tab 
+
+tabCat chari2015Train293T.scores.tab chari2015TrainK562.scores.tab doench2014-Hs.scores.tab doench2014-Mm.scores.tab doench2016_hg19.scores.tab farboud2015.scores.tab gagnon2014.scores.tab morenoMateos2015.scores.tab ren2015.scores.tab schoenig.scores.tab varshney2015.scores.tab xu2015.scores.tab xu2015AAVS1.scores.tab xu2015FOX-AR.scores.tab xu2015TrainHl60.scores.tab xu2015TrainKbm7.scores.tab hart2016-HelaLib1Avg.scores.tab hart2016-HelaLib2Avg.scores.tab hart2016-Hct1162lib1Avg.scores.tab hart2016-Rpe1Avg.scores.tab concordet2-Hs.scores.tab concordet2-Mm.scores.tab ghandi2016_ci2.scores.tab liu2016_mm9.scores.tab teboulVivo_mm9.scores.tab alenaAll.scores.tab eschstruth.scores.tab | sed -e 's/ghandi/gandhi/g' | sed -e 's/alena/shkumatava/g' > ~/Dropbox/articles/crispor/crisporArticleSupplFiles/suppFile2.tsv
+egrep '(CCDC101)|(CUL3)|(HPRT1)|(MED12)|(NF1)|(NF2)|(TADA1)|(TADA2B)' doench2016_hg19.scores.tab > doench2016azd_hg19.scores.tab

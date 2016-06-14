@@ -32,6 +32,12 @@ ofh3 = open("../xu2015TrainMEsc.guides.tab", "w")
 ofh3.write("guide\tseq\tmodFreq\n")
 #ofh3.write("guide\tseq\textSeq\tmodFreq\tposition\n")
 
+ofh4 = open("../xu2015TrainMEsc1.guides.tab", "w")
+ofh4.write("guide\tseq\tmodFreq\n")
+
+ofh5 = open("../xu2015TrainMEsc2.guides.tab", "w")
+ofh5.write("guide\tseq\tmodFreq\n")
+
 geneCounts = defaultdict(int)
 for fname in glob.glob("*.txt"):
     if fname=="log.txt" or fname=="README.txt":
@@ -77,6 +83,8 @@ for fname in glob.glob("*.txt"):
             score2 = float(fs[6])
             avgScore = log((exp(score1) + exp(score2))/2.0)
             ofh3.write("%s\t%s\t%s\n" % (guideId, shortSeq[:20], avgScore))
+            ofh4.write("%s\t%s\t%s\n" % (guideId, shortSeq[:20], score1))
+            ofh5.write("%s\t%s\t%s\n" % (guideId, shortSeq[:20], score2))
             #    chrom, start, strand = koikeYusaSeqs[ shortSeq[:20].upper() ]
             #    start = int(start)
             #    # need position of 34mer
@@ -101,4 +109,6 @@ ofh2.close()
 print "output written to %s" % ofh1.name
 print "output written to %s" % ofh2.name
 print "output written to %s" % ofh3.name
+print "output written to %s" % ofh4.name
+print "output written to %s" % ofh5.name
 #print "output written to %s" % ofh2.name
