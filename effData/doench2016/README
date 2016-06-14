@@ -1,3 +1,4 @@
 Data from http://www.nature.com/nbt/journal/v34/n2/full/nbt.3437.html
 
 Used only supp table 16 in the end, as this was used to train the algorithms
+So only run pyton convert-suppTable16.py

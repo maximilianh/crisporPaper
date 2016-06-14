@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 
 #selDatasets = ["doench2014-Hs", "morenoMateos2015", "chari2015Train", "xu2015TrainHl60", "chariEval", "hart2016HelaLib2_hg19"]
 #selDatasets = ["xu2015TrainHl60", "xu2015TrainMEsc", "doench2014-Hs", "doench2014-Mm", "morenoMateos2015", "chari2015Train", "doench2016azd_hg19", "hart2016HelaLib2_hg19", "hart2016HelaLib1_hg19", "hart2016Hct1161lib1_hg19", "wang2015_hg19"]
-selDatasets = ["xu2015TrainHl60", "xu2015TrainMEsc", "doench2014-Hs", "doench2014-Mm", "morenoMateos2015", "chari2015Train", "doench2016azd_hg19", "hart2016HelaLib2_hg19", "hart2016HelaLib1_hg19", "hart2016Hct1161lib1_hg19"]
+#selDatasets = ["xu2015TrainHl60", "xu2015TrainMEsc", "doench2014-Hs", "doench2014-Mm", "morenoMateos2015", "chari2015Train", "doench2016azd_hg19", "hart2016-HelaLib2Avg", "hart2016-HelaLib1Avg", "hart2016-Hct1161lib1Avg"]
+selDatasets = ["xu2015TrainHl60", "xu2015TrainMEsc", "doench2014-Mm", "morenoMateos2015", "chari2015Train293T", "doench2016azd_hg19", "hart2016-Hct1161lib1Avg"]
 
 scoreDescs = {
     "wang" : "Wang Score2",
@@ -102,7 +103,7 @@ def writeRTables(outDir, datasetName):
             allFound = False
             
     if allFound:
-        print "all scoring files already exist for dataset %s" % datasetName
+        print "all scoring files already exist for dataset %s in outFname %s" % (datasetName, outFname)
         return
 
     labels, allScores, allSeqs = readData(datasetName)
@@ -239,8 +240,8 @@ def main():
         runR(dataDir)
 
     for plotType in ["precRec", "roc"]:
-        fig, axes = plt.subplots(3, 4)
-        fig.set_size_inches(20, 15)
+        fig, axes = plt.subplots(2, 4)
+        fig.set_size_inches(20, 10)
 
         for datasetName, axis in zip(datasetNames, fig.axes):
             coords = parseCoords(dataDir, datasetName, plotType)

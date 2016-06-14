@@ -2,3 +2,5 @@ cat kim2016-suppTable3-hela.tsv | grep -v Invalidated | cut -f4 | tr [:lower:] [
 cat tableS2/*.txt | grep -v Position | grep Chr | cut -f4 | tr [:lower:] [:upper:] | sort | grep -v DNA | tr -d ' '> tableS2Seqs.txt 
 cut -f2 ../Tsai2015/convert.tab | sort > tsaiSeqs.txt
 lstRemove tableS3Seqs.txt tsaiSeqs.txt > kimValidSeqs.txt
+lstIntersect tableS3Seqs.txt tsaiSeqs.txt | wc -l
+# 114
