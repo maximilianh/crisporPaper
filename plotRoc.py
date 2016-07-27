@@ -75,7 +75,7 @@ def plotRoc(prefix, expFreqs, predScores, color, style, plots, labels, allOts=No
             otScore = predScores.get(otSeq, 0.0)
         else:
             otScore = predScores[otSeq]
-        #print otScore
+
         assert(otScore is not None)
         yVals.append(otScore)
         # only ignore off-targets with a mod freq of 0.0 (can appear in Hsu/Cho data)
@@ -143,12 +143,13 @@ def parseOfftargets(fname, maxMismatches, onlyAlt, validPams):
     guideSeqs = dict()
     print "parsing %s" % fname
     skipCount = 0
+    otSeqs = set()
     for row in iterTsvRows(fname):
-        #print fname, int(row.mismatches), maxMismatches
         if int(row.mismatches)>maxMismatches:
             print "skip", row
             skipCount += 1
             continue
+
         if validPams!=None and not row.otSeq[-2:] in validPams:
             print "not using off-target %s/%s, PAM is not in %s" % (row.name, row.otSeq, validPams)
             continue
@@ -157,8 +158,22 @@ def parseOfftargets(fname, maxMismatches, onlyAlt, validPams):
         if onlyAlt and not row.otSeq[-2:] in ["AG", "GA"]:
             continue
         otScores[row.guideSeq][row.otSeq] = float(row.readFraction)
+        otSeqs.add(row.otSeq)
     print "Skipped %d rows with more than %d mismatches" % (skipCount, maxMismatches)
+    print "Found %d unique off-target sequences" % len(otSeqs)
     return otScores, guideSeqs
+
+def writeToTab(validOffts, cfdScores, outFname):
+    " write a table with offtargets and CFD scores to a tab file for Nicolo Fusi's new model "
+    ofh = open(outFname, "w")
+    ofh.write("otSeq\tcfdScore\twasValidated\n")
+    for otSeq, score in cfdScores.iteritems():
+        wasValidated = (otSeq in validOffts)
+        row = [otSeq, str(score), str(int(wasValidated))]
+        ofh.write("\t".join(row))
+        ofh.write("\n")
+    ofh.close()
+    print "wrote ROC data to %s" % outFname
 
 def main():
 
@@ -167,11 +182,6 @@ def main():
         if sys.argv[1]=="supp":
             global makeSupp
             makeSupp = True
-
-    #if makeSupp:
-        #global maxMismatches
-        #maxMismatches = 6
-        #print "Setting max mismatches to 6"
 
     guideValidOts, guideSeqs = parseOfftargets("out/annotFiltOfftargets.tsv", maxMismatches, onlyAlt, validPams)
 
@@ -186,8 +196,6 @@ def main():
         pickle.dump(crisporPredOts, open(tmpFname, "w"))
         print "Wrote offtargets to %s" % tmpFname
 
-    #cropitPredOts = parseCropit("cropitOfftargets", guideSeqs)
-
     plots = []
     labels = []
 
@@ -201,6 +209,9 @@ def main():
     print "calculating CFD scores"
     cfdPredOts = calcOtScores(crisporPredOts, calcCfdScore)
     cfdScores = collapseDicts(cfdPredOts)
+
+    writeToTab(validOffts, cfdScores, "out/fig2-crisporData.tab")
+
     plots, labels = plotRoc("CFD score", validOffts, cfdScores, "orange", "-", plots, labels)
 
     if makeSupp:
@@ -213,6 +224,7 @@ def main():
         #print "XX", len(validOfftsFull)
 
     print "plotting other ROCs"
+
     plots, labels = plotRoc("MIT score", validOffts, crisporScores, "darkblue", "-", plots, labels)
     if not onlyAlt:
         plt.annotate('FPR=0.43, TPR=0.98:\nCFD score = 0.023', xy=(0.44, 0.985), xytext=(0.5, 1.04),
