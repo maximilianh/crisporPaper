@@ -42,6 +42,14 @@ Wang2015
 
 annotateOffs.py is the central library with helper functions for all scripts.
 
+Off-target data
+---------------
+
+The predicted off-target file was too big for the paper supplement and also for git, so they are stored on the UCSC webserver. Run "make download" to download off-targets predicted by crispor, cropit, the MIT website and whole-genome specificity scores predicted by crispor.
+The file is http://hgwdev.soe.ucsc.edu/~max/crispor/analysisData/bigData.tgz.
+
+They are used for Figure 2. To produce the figure, plotRoc.py uses only predicted off-targets with <= 4 mismatches.
+
 scripts
 -------
 
@@ -100,7 +108,7 @@ plotRoc.py: create ROC plot
         Input: the files in crisporOfftargets, mitOfftargets and cropitOfftargets
         Output: out/roc.pdf
         With the argument "supp", it adds a dataset "with two outliers" to the ROC plot
-        (question by referee)
+        (question by referee #1)
 
 compareOfftargetTools.py: 
         Creates a table with MIT versus CRispor versus CassOffFinder.
